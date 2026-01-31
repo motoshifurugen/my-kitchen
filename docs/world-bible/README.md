@@ -50,10 +50,21 @@ World Bibleは、
 
 このディレクトリには、プロジェクトの概念的基盤となるドキュメントが格納されます。
 
+---
+
+## 用語辞書
+
+World Bible全体で使用される主要概念の日本語名・英語識別子・定義は、[terminology.md](./terminology.md) にまとめられています。
+
+すべてのドキュメントは、この用語辞書に定義された用語を使用します。
+
+---
+
 ## ドキュメント一覧
 
 | ドキュメント | 状態 | Issue |
 |-------------|------|-------|
+| [terminology.md](./terminology.md) | ✅ 完成 | - |
 | [core-philosophy.md](./core-philosophy.md) | ✅ 完成 | WB-002 |
 | [experience-principles.md](./experience-principles.md) | ✅ 完成 | WB-003 |
 | [philosophy-speed.md](./philosophy-speed.md) | ✅ 完成 | WB-004 |
