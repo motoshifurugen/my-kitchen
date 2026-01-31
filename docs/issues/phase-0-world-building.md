@@ -195,7 +195,7 @@ UIの雰囲気、提案内容、微細なインタラクションに影響を与
 - [ ] 感情ルートの定義が明文化されている
 - [ ] ルートが影響を与える要素が列挙されている
 - [ ] ルートが影響を与えない要素が明確である
-- [ ] `/docs/world-bible/routes-concept.md` に記載されている
+- [ ] `/docs/world-bible/kitchen-signals.md` に記載されている
 
 #### 依存関係
 
@@ -226,7 +226,7 @@ Alpha版でサポートする感情ルートを定義する。
 - [ ] 各ルートに日本語名と英語識別子がある
 - [ ] 各ルートの感情的特徴が記述されている
 - [ ] 各ルートの典型的な使用シーンが記述されている
-- [ ] `/docs/world-bible/routes-definitions.md` に記載されている
+- [ ] `/docs/world-bible/environment-composition.md` に記載されている
 
 #### 依存関係
 
