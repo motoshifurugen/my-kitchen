@@ -62,31 +62,31 @@ World Bible全体で使用される主要概念の日本語名・英語識別子
 
 ## ドキュメント一覧
 
-| ドキュメント | 状態 | Issue |
-|-------------|------|-------|
-| [terminology.md](./terminology.md) | ✅ 完成 | - |
-| [core-philosophy.md](./core-philosophy.md) | ✅ 完成 | WB-002 |
-| [experience-principles.md](./experience-principles.md) | ✅ 完成 | WB-003 |
-| [philosophy-speed.md](./philosophy-speed.md) | ✅ 完成 | WB-004 |
-| [philosophy-recording.md](./philosophy-recording.md) | ✅ 完成 | WB-005 |
-| [kitchen-signals.md](./kitchen-signals.md) | ✅ 完成 | WB-006 |
-| [environment-composition.md](./environment-composition.md) | ✅ 完成 | WB-007 |
-| [environment-visual-tone.md](./environment-visual-tone.md) | ✅ 完成 | WB-008 |
-| [lighting-concept.md](./lighting-concept.md) | ✅ 完成 | WB-009 |
-| [lighting-time-rules.md](./lighting-time-rules.md) | ✅ 完成 | WB-010 |
-| [sound-philosophy.md](./sound-philosophy.md) | ✅ 完成 | WB-012 |
-| [sound-ambient.md](./sound-ambient.md) | ✅ 完成 | WB-013 |
-| [sound-interactions.md](./sound-interactions.md) | ✅ 完成 | WB-014 |
-| [microcopy-voice-tone.md](./microcopy-voice-tone.md) | ✅ 完成 | WB-015 |
-| [microcopy-empty-states.md](./microcopy-empty-states.md) | ✅ 完成 | WB-016 |
-| [microcopy-errors.md](./microcopy-errors.md) | ✅ 完成 | WB-017 |
-| [rhythm-philosophy.md](./rhythm-philosophy.md) | ✅ 完成 | WB-018 |
-| [rhythm-transitions.md](./rhythm-transitions.md) | ✅ 完成 | WB-019 |
-| [photography-guidelines.md](./photography-guidelines.md) | ✅ 完成 | WB-020 |
-| [temporality.md](./temporality.md) | ✅ 完成 | WB-021 |
-| [philosophy-imperfection.md](./philosophy-imperfection.md) | ✅ 完成 | WB-022 |
-| [philosophy-privacy.md](./philosophy-privacy.md) | ✅ 完成 | WB-023 |
-| [visual-language-foundation.md](./visual-language-foundation.md) | ✅ 完成 | WB-024 |
+| ドキュメント | 概要 | 状態 | Issue |
+|-------------|------|------|-------|
+| [terminology.md](./terminology.md) | World Bible全体で使用される主要概念の日本語名・英語識別子・定義をまとめた用語辞書 | ✅ 完成 | - |
+| [core-philosophy.md](./core-philosophy.md) | 核心思想「料理は静かな自己回復の儀式である」の定義と、UI・音・速度・言葉づかい・演出への影響 | ✅ 完成 | WB-002 |
+| [experience-principles.md](./experience-principles.md) | 核心思想から導かれる具体的な体験設計原則（わくわく、積み重なり、世界と同調、自発性、行為そのものを主役にする） | ✅ 完成 | WB-003 |
+| [philosophy-speed.md](./philosophy-speed.md) | 速さの哲学。時間を縮めることではなく、迷い・説明・選択疲れを取り除くこと。摩擦の除去であり、急かすことではない | ✅ 完成 | WB-004 |
+| [philosophy-recording.md](./philosophy-recording.md) | 記録の哲学。情報の保存ではなく、料理をした時間の「余韻」を閉じ込めること | ✅ 完成 | WB-005 |
+| [kitchen-signals.md](./kitchen-signals.md) | ユーザーをタイプに分類せず、生活の断片（Signals）を観察し、それらの積み重ねから台所の空気を自然に形作る仕組み | ✅ 完成 | WB-006 |
+| [environment-composition.md](./environment-composition.md) | 複数のKitchen Signalsを合成し、その都度「空気」を生成する環境構成ルール。固定テーマではなく動的に構成される | ✅ 完成 | WB-007 |
+| [environment-visual-tone.md](./environment-visual-tone.md) | Kitchen Signalsを合成して生成される視覚トーンの「方向性」と「ムード」を定義。現実 5 : ファンタジー 5の原則 | ✅ 完成 | WB-008 |
+| [lighting-concept.md](./lighting-concept.md) | ライティング温度システムの概念。ダークモード/ライトモードの切替ではなく、キッチン世界の「空気」そのものを作る仕組み | ✅ 完成 | WB-009 |
+| [lighting-time-rules.md](./lighting-time-rules.md) | 時間帯ライティング変化ルール。現実世界の「時間の流れ」と同期し、キッチン世界の空気が自然に変化する仕組み | ✅ 完成 | WB-010 |
+| [sound-philosophy.md](./sound-philosophy.md) | 音の哲学。操作フィードバックではなく、キッチンに「気配」を与えるための環境要素。音は主張しない | ✅ 完成 | WB-012 |
+| [sound-ambient.md](./sound-ambient.md) | アンビエントサウンド設計方針。BGMではなく、キッチンに「気配」を与えるための極めて小さな生活音 | ✅ 完成 | WB-013 |
+| [sound-interactions.md](./sound-interactions.md) | インタラクションサウンド設計方針。基本的に使用しない。タップ音や画面遷移音などの「UIフィードバック音」は排除する | ✅ 完成 | WB-014 |
+| [microcopy-voice-tone.md](./microcopy-voice-tone.md) | マイクロコピーの声と調子。価値観を押し付けたり、感情を操作したりしない。言葉は「空気」として存在する | ✅ 完成 | WB-015 |
+| [microcopy-empty-states.md](./microcopy-empty-states.md) | 空状態メッセージの哲学。欠けではなく、これから積み重なる余白。寂しさや不足を強調しない | ✅ 完成 | WB-016 |
+| [microcopy-errors.md](./microcopy-errors.md) | エラーメッセージの哲学。責めない、急かさない、説明しすぎない。起きたことだけを静かに伝える | ✅ 完成 | WB-017 |
+| [rhythm-philosophy.md](./rhythm-philosophy.md) | インタラクションリズムの哲学。台所に立つ時間のリズム。急がない、しかし停滞もしない。自然に呼吸できる流れ | ✅ 完成 | WB-018 |
+| [rhythm-transitions.md](./rhythm-transitions.md) | 画面遷移アニメーションの方向性。演出ではなく、ユーザーの注意を奪わず、世界の呼吸を乱さないために存在する | ✅ 完成 | WB-019 |
+| [photography-guidelines.md](./photography-guidelines.md) | 料理写真のガイドライン。Instagramのための写真ではなく、日常の料理風景をそのまま残す。映えではなく、気配 | ✅ 完成 | WB-020 |
+| [temporality.md](./temporality.md) | 季節と時間の表現。短期の達成を追うのではなく、時間が積み重なっていく感覚を作る。季節は演出ではなく自然現象 | ✅ 完成 | WB-021 |
+| [philosophy-imperfection.md](./philosophy-imperfection.md) | 不完全でよいという原則。完璧な記録を求めない。毎日できなくてもいい、写真がなくてもいい、メモがなくてもいい | ✅ 完成 | WB-022 |
+| [philosophy-privacy.md](./philosophy-privacy.md) | 完全にプライベートな空間。誰かに見せるためではなく、純粋に自分のための記録と回復の場所 | ✅ 完成 | WB-023 |
+| [visual-language-foundation.md](./visual-language-foundation.md) | 視覚言語の基礎方向性。具体的なデザインシステムを作る前に、このアプリが「どんな見た目の言語で話すか」を定義する | ✅ 完成 | WB-024 |
 
 **注記：**
 - `routes-visual-tone.md` は `environment-visual-tone.md` に統合されました
