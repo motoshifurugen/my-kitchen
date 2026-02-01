@@ -8,6 +8,8 @@ _Design Tokens Specification_
 アプリ全体で使用するデザイントークン（カラー、タイポグラフィ、スペーシング、形状）を定義する。
 具体的な値は `03-design-tokens.json` に格納。
 
+**対象プラットフォーム:** iOS / Android（React Native）
+
 **関連イシュー:** UX-016, UX-017, UX-018, UX-019, UX-025
 
 ---
@@ -17,6 +19,7 @@ _Design Tokens Specification_
 本ドキュメントにおける `pt` は iOS の「ポイント」を基準とする。
 Android 実装時は `dp`（密度非依存ピクセル）として読み替えること。
 フォントサイズについては Android では `sp`（スケール非依存ピクセル）を使用する。
+React Native では数値をそのまま使用（density-independent）。
 
 ---
 
@@ -118,7 +121,6 @@ Android 実装時は `dp`（密度非依存ピクセル）として読み替え�
 |-----------|-----|------|
 | `opacity.disabled` | 0.4 | 無効状態の全般的な透明度 |
 | `opacity.pressed` | 0.08 | 押下時オーバーレイ |
-| `opacity.hover` | 0.04 | ホバー時オーバーレイ（Web向け） |
 
 ### UIステート設計ガイド
 
@@ -139,14 +141,14 @@ Android 実装時は `dp`（密度非依存ピクセル）として読み替え�
 
 ### フォントファミリー
 
-フォールバック順に記載。システムフォントを優先し、可読性を確保。
+| プラットフォーム | トークン | 値 |
+|-----------------|---------|-----|
+| iOS | `typography.fontFamily.ios` | System (default) |
+| Android | `typography.fontFamily.android` | Noto Sans JP |
 
-| プラットフォーム | フォントスタック |
-|-----------------|-----------------|
-| iOS | `Hiragino Sans`, `-apple-system`, `San Francisco`, `sans-serif` |
-| Android | `Noto Sans JP`, `Roboto`, `sans-serif` |
-
-**実装メモ:** React Native では `fontFamily` に直接指定。Web では CSS font-family として記述。
+**React Native 実装メモ:**
+- **iOS**: `fontFamily` を省略するとシステムフォント（San Francisco）が使用される。これが推奨動作。日本語は Hiragino Sans にフォールバックする。明示的に指定する必要がある場合のみ `System` を使用。
+- **Android**: `fontFamily: Noto Sans JP` を指定。Roboto へのフォールバックは OS 側で自動処理。
 
 ### フォントウェイト
 
@@ -260,18 +262,18 @@ Android 実装時は `dp`（密度非依存ピクセル）として読み替え�
 | `shadow.md` | 0 2px 8px rgba(0,0,0,0.08) | カード |
 | `shadow.lg` | 0 4px 16px rgba(0,0,0,0.10) | モーダル |
 
-### 重なり順（Z-Index / Elevation）
+### 重なり順（Elevation）
 
-React Native および Web 実装向けの基準値。
+React Native 実装向けの zIndex / elevation 基準値。
 
 | トークン名 | 値 | 用途 |
 |-----------|-----|------|
 | `elevation.base` | 0 | 通常コンテンツ |
 | `elevation.card` | 1 | カード、浮き要素 |
 | `elevation.footer` | 10 | 固定フッター |
+| `elevation.overlay` | 50 | オーバーレイ背景（モーダル下） |
 | `elevation.modal` | 100 | モーダル、ダイアログ |
 | `elevation.toast` | 200 | トースト通知 |
-| `elevation.overlay` | 50 | オーバーレイ背景（モーダル下） |
 
 ---
 
@@ -295,7 +297,7 @@ React Native および Web 実装向けの基準値。
 | `focus.ring.width` | 2pt | 視認性確保 |
 | `focus.ring.offset` | 2pt | 要素との間隔 |
 
-**実装ガイド:** キーボード/スイッチ操作時のみ表示。タップ操作時は非表示でも可。
+**実装ガイド:** スイッチコントロール / VoiceOver 操作時に表示。通常のタップ操作時は非表示でも可。
 
 ---
 
@@ -311,13 +313,23 @@ React Native および Web 実装向けの基準値。
 | accent.primary / background.primary | 4.6:1 | ✅ AA（要実機検証） |
 | text.disabled / background.primary | 2.5:1 (目安) | - 装飾的使用に限定 |
 
-**注意:** コントラスト比は設計時の参考値。最終的な適合判定は実装後のツール検証（axe, Lighthouse等）で確認すること。
+**注意:** コントラスト比は設計時の参考値。最終的な適合判定は実装後のアクセシビリティ検証で確認すること。
 
 ---
 
-## 更新履歴
+## 変更履歴
 
 | 日付 | 更新内容 |
 |------|---------|
 | 2026-02-01 | 初版作成 |
 | 2026-02-01 | UIステートトークン追加、セマンティックカラー分割、タイポグラフィ強化、overlay分割、elevation追加、フォーカスリング追加、WCAG表記修正 |
+| 2026-02-01 | モバイル専用に整理: opacity.hover削除、iOS fontFamily をシステムデフォルト推奨に変更、JSON完全同期 |
+
+---
+
+## Change Notes
+
+- `opacity.hover` を削除（モバイルアプリでは不使用）
+- `typography.fontFamily.ios` を `System (default)` に変更（RN では fontFamily 省略を推奨）
+- `size.tap.minimum` の説明を「WCAG準拠」から「プラットフォームガイドライン推奨」に修正
+- セマンティックカラーを text/background/border に分割し JSON と MD を完全同期

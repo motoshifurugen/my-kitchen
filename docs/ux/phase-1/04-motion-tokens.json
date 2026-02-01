@@ -1,21 +1,27 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "my-kitchen motion tokens for iOS/Android (React Native)",
   "duration": {
     "instant": { "$value": "100ms", "$description": "即時フィードバック" },
     "fast": { "$value": "150ms", "$description": "軽いインタラクション" },
     "normal": { "$value": "200ms", "$description": "標準遷移" },
-    "slow": { "$value": "280ms", "$description": "情報量多い遷移" },
+    "slow": { "$value": "300ms", "$description": "情報量多い遷移、オーバーレイ" },
     "slower": { "$value": "350ms", "$description": "演出的な動き" },
     "transition": {
-      "fade": { "$value": "200ms" },
-      "slide": { "$value": "250ms" },
-      "overlay": { "$value": "200ms" }
+      "fade": { "$value": "200ms", "$description": "フェード遷移（Footer間移動）" },
+      "slide": { "$value": "250ms", "$description": "スライド遷移（階層移動）" },
+      "overlay": { "$value": "300ms", "$description": "オーバーレイ出現/退出" }
     },
     "feedback": {
-      "tap": { "$value": "100ms" }
+      "tap": { "$value": "100ms", "$description": "タップフィードバック" }
     },
-    "celebration": { "$value": "350ms" },
-    "worldBreath": { "$value": "3000ms", "$description": "1サイクル" }
+    "celebration": { "$value": "350ms", "$description": "記録完了セレブレーション（光の広がり）" },
+    "world": {
+      "breath": { "$value": "3000ms", "$description": "呼吸1サイクル" },
+      "sway": { "$value": "4000ms", "$description": "カーテン/植物の揺れ" },
+      "light": { "$value": "10000ms", "$description": "光の移ろい" },
+      "steam": { "$value": "3000ms", "$description": "湯気のゆらぎ" }
+    }
   },
   "easing": {
     "easeOut": {
@@ -29,6 +35,45 @@
     "easeOutSoft": {
       "$value": "cubic-bezier(0.25, 1, 0.5, 1)",
       "$description": "よりやわらかい終わり"
+    },
+    "transition": {
+      "$value": "{easing.easeOut}",
+      "$description": "画面遷移用"
+    },
+    "feedback": {
+      "$value": "{easing.easeOut}",
+      "$description": "インタラクション用"
+    },
+    "celebration": {
+      "$value": "{easing.easeOutSoft}",
+      "$description": "セレブレーション用"
+    },
+    "world": {
+      "$value": "{easing.easeInOut}",
+      "$description": "世界の呼吸・揺らぎ用"
+    }
+  },
+  "distance": {
+    "slide": {
+      "short": { "$value": "30pt", "$description": "Soft Slide（一覧→詳細）" },
+      "medium": { "$value": "60pt", "$description": "画面間スライド（将来用）" }
+    },
+    "overlay": {
+      "raise": { "$value": "20pt", "$description": "オーバーレイ出現時の上昇" },
+      "full": { "$value": "screenHeight", "$description": "フルスクリーンオーバーレイ（実行時にDimensions.get(window).heightで解決）" }
+    }
+  },
+  "scale": {
+    "tap": {
+      "down": { "$value": 0.97, "$description": "タップ押下時の縮小" },
+      "up": { "$value": 1.0, "$description": "タップ解放時（元サイズ）" }
+    },
+    "world": {
+      "breathMin": { "$value": 0.98, "$description": "世界呼吸の縮小時" },
+      "breathMax": { "$value": 1.02, "$description": "世界呼吸の拡大時" }
+    },
+    "modal": {
+      "enter": { "$value": 0.95, "$description": "モーダル出現開始" }
     }
   },
   "transition": {
@@ -40,55 +85,44 @@
     "slideRight": {
       "duration": { "$value": "{duration.transition.slide}" },
       "easing": { "$value": "{easing.easeOut}" },
-      "translateX": { "$value": "30pt" }
+      "translateX": { "$value": "{distance.slide.short}" }
     },
     "slideLeft": {
       "duration": { "$value": "{duration.transition.slide}" },
       "easing": { "$value": "{easing.easeOut}" },
-      "translateX": { "$value": "-30pt" }
+      "translateX": { "$value": "-30pt", "$description": "distance.slide.short の負値" }
     },
     "overlay": {
       "duration": { "$value": "{duration.transition.overlay}" },
       "easing": { "$value": "{easing.easeOut}" },
-      "translateY": { "$value": "20pt" }
-    }
-  },
-  "worldLayer": {
-    "steam": {
-      "type": { "$value": "sway" },
-      "duration": { "$value": "3000ms" },
-      "amplitude": { "$value": "micro" }
+      "translateY": { "$value": "{distance.overlay.raise}" }
     },
-    "lightShift": {
-      "type": { "$value": "gradient" },
-      "duration": { "$value": "10000ms" },
-      "amplitude": { "$value": "micro" }
-    },
-    "curtainPlant": {
-      "type": { "$value": "sway" },
-      "duration": { "$value": "4000ms" },
-      "amplitude": { "$value": "micro" }
-    },
-    "characterBreath": {
-      "type": { "$value": "scale" },
-      "duration": { "$value": "3000ms" },
-      "scaleRange": { "$value": "0.98-1.02" }
+    "modal": {
+      "duration": { "$value": "250ms" },
+      "easing": { "$value": "{easing.easeOut}" },
+      "scale": { "$value": "{scale.modal.enter}" }
     }
   },
   "celebration": {
-    "sequence": [
-      { "step": "lightSpread", "delay": "100ms", "duration": "350ms" },
-      { "step": "messageShow", "delay": "450ms", "duration": "200ms" },
-      { "step": "pause", "delay": "650ms", "duration": "300ms" },
-      { "step": "shelfAdd", "delay": "950ms", "duration": "250ms" },
-      { "step": "returnTop", "delay": "1200ms", "duration": "200ms" }
-    ],
-    "totalDuration": { "$value": "1400ms" }
+    "sequence": {
+      "$value": [
+        { "step": "tapFeedback", "delay": 0, "duration": 100 },
+        { "step": "lightSpread", "delay": 100, "duration": 350 },
+        { "step": "messageShow", "delay": 450, "duration": 0 },
+        { "step": "pause", "delay": 450, "duration": 300 },
+        { "step": "returnTop", "delay": 750, "duration": 300 }
+      ],
+      "$description": "記録完了セレブレーションのステップ"
+    },
+    "totalDuration": { "$value": "1050ms", "$description": "セレブレーション合計時間" }
   },
   "reducedMotion": {
-    "slide": { "$value": "fade" },
-    "celebration": { "$value": "messageOnly" },
-    "worldBreath": { "$value": "doubled or static" },
-    "tapFeedback": { "$value": "keep" }
+    "transition": {
+      "slide": { "$value": "fade", "$description": "Slide遷移をFadeに変換" },
+      "overlay": { "$value": "fade", "$description": "Overlay遷移をFadeに変換" }
+    },
+    "celebration": { "$value": "messageOnly", "$description": "光の広がりなし、メッセージのみ" },
+    "world": { "$value": "static", "$description": "世界アンビエントを静止" },
+    "tapFeedback": { "$value": "keep", "$description": "タップフィードバックは維持" }
   }
 }

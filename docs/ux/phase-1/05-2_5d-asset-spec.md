@@ -8,7 +8,14 @@ _2.5D World Asset Specification_
 トップ画面キッチン世界の2.5Dアセット仕様を定義する。
 レイヤー合成によるシグナル対応、固定カメラ構図、アセットパイプラインを含む。
 
+**対象プラットフォーム:** iOS / Android（React Native）
+
 **関連イシュー:** UX-036, UX-037, UX-038, UX-041, UX-042, UX-044, UX-046
+
+**参照ドキュメント:**
+- `01-screen-flows.md` — 画面構成・世界表示ルール
+- `03-design-tokens.md` — カラートークン
+- `04-motion-tokens.md` — アンビエントループ用デュレーション
 
 ---
 
@@ -30,12 +37,28 @@ _2.5D World Asset Specification_
 
 ---
 
+## 画面別世界表示ルール
+
+01-screen-flows.md §2.3 準拠。
+
+| 画面 | 世界表示 | アンビエント | 備考 |
+|------|---------|-------------|------|
+| S-01 トップ | **100% visible** | 継続 | 世界が主役 |
+| S-02〜S-06 | **Blur backdrop** | 継続（控えめ） | UI が前面、世界は blur(20px) |
+| S-04 記録フロー | Blur backdrop | 継続 | フォーカスモード |
+| S-07 オンボーディング | 非表示 | 停止 | 全画面UI |
+| S-08 セレブレーション | Visible（blur解除） | 継続 | 世界が見える状態で演出 |
+
+**注:** S-02〜S-06 でも世界レイヤーの呼吸アニメーションは継続可能。ただし blur 処理により控えめに見える。
+
+---
+
 ## レイヤースタック構造
 
 下から順に重ねる：
 
 ```
-Layer 7: UI Layer（フッター等）     ← 別管理
+Layer 7: UI Layer（フッター等）     ← 別管理（本仕様外）
 ─────────────────────────────────
 Layer 6: Ambient Loops（湯気等）   ← アニメーション
 Layer 5: Season Overlay（季節トーン）
@@ -47,14 +70,50 @@ Layer 1: Base Kitchen（ベースキッチン）
 
 ### 合成モード
 
-| レイヤー | 合成モード | 備考 |
-|---------|-----------|------|
-| Ambient Loops | Normal | 透過PNG/動画 |
-| Season Overlay | Soft Light / Overlay | 透明度調整可 |
-| Time Overlay | Soft Light / Multiply | 時間帯で補間 |
-| Household Props | Normal | 追加/削除 |
-| Age Props | Normal | 差し替え |
-| Base Kitchen | Normal | 常に表示 |
+| レイヤー | 推奨合成モード | 実装方式 | 備考 |
+|---------|--------------|---------|------|
+| Ambient Loops | Normal | opacity制御 | 透過PNG/Lottie |
+| Season Overlay | Normal + opacity | opacity調整 | アート側で色調整済み |
+| Time Overlay | Normal + opacity | opacity調整 | アート側で暗さ調整済み |
+| Household Props | Normal | 表示/非表示 | 追加/削除 |
+| Age Props | Normal | 差し替え | セット切替 |
+| Base Kitchen | Normal | 常時表示 | 最下層 |
+
+---
+
+## 実装互換性（Implementation Compatibility）
+
+### 主要実装方式: Normal + Opacity
+
+React Native での安定性を優先し、**すべてのレイヤーを Normal ブレンドモード + opacity 制御**で実装する。
+
+```
+方式: react-native-skia 不使用（複雑性回避）
+代替: 標準 RN Image + Animated.View opacity
+```
+
+### ブレンドモード対応表
+
+| 合成効果 | 本仕様での対応 | 実装方法 |
+|---------|--------------|---------|
+| Soft Light | **アート側で焼き込み** | PNG に効果を含めて書き出し、Normal+opacity で重ねる |
+| Overlay | **アート側で焼き込み** | 同上 |
+| Multiply | **アート側で焼き込み** | 同上 |
+
+### アート制作ガイド
+
+Time/Season オーバーレイは以下の手順で制作：
+
+1. Photoshop/Figma で Soft Light/Overlay/Multiply 効果を適用
+2. **Base Kitchen 背景と合成した状態でルック確認**
+3. 効果込みの状態で **透過PNG として書き出し**
+4. RN 上では opacity 0.0〜1.0 で表示強度を調整
+
+### フォールバック方式
+
+主要方式が問題を起こす場合：
+- **Skia 導入**: `@shopify/react-native-skia` で blendMode 直接指定
+- ただし初期リリースでは使用しない（安定性優先）
 
 ---
 
@@ -66,17 +125,94 @@ Layer 1: Base Kitchen（ベースキッチン）
 |------|------|------|
 | 壁・床 | キッチンの基本構造 | 固定 |
 | キッチン台 | 調理台・シンク | 固定 |
-| 窓 | 光の入り口 | 時間帯で光量変化 |
+| 窓 | 光の入り口 | 時間帯で光量変化（overlay で表現） |
 | 冷蔵庫 | 基本家電 | 固定 |
 | コンロ | 調理エリア | 固定 |
-| 棚 | 収納・飾り棚 | 固定構造、中身は変化可 |
+| 棚 | 収納・飾り棚 | 固定構造、中身は Props で変化 |
 
 ### スタイルガイド
 
 - **形状**: 柔らかい角、デフォルメ許容
 - **素材感**: マット基本、やわらかい影
-- **色味**: ニュートラル〜やや暖色
+- **色味**: ニュートラル〜やや暖色（`color.background.primary` 基調）
 - **ディテール**: 生活の痕跡を入れる（使用感、小傷等）
+
+---
+
+## プロップ配置ルール（Props Placement Rules）
+
+### セーフゾーン（配置禁止領域）
+
+| 領域 | Y座標目安 | 理由 |
+|------|----------|------|
+| フッター領域 | 下端から 80pt | UI重複回避 |
+| ステータスバー領域 | 上端から 60pt | ノッチ/ステータスバー |
+| 画面端マージン | 左右 20pt | 視覚的余白 |
+
+### アンカーポイント（配置推奨領域）
+
+| アンカー名 | 位置 | 配置可能なプロップ |
+|-----------|------|------------------|
+| `shelf-top` | 棚の上面 | 調味料、小物、植物 |
+| `counter-left` | カウンター左端 | キッチン用品、食材 |
+| `counter-right` | カウンター右端 | 調理器具、瓶類 |
+| `window-sill` | 窓辺 | 植物、小物 |
+| `wall-hook` | 壁掛けエリア | フライパン、エプロン |
+| `floor-corner` | 床の角 | ゴミ箱、収納ボックス |
+
+### 奥行き・遮蔽ルール
+
+```
+前面 ─────────────────────────── 奥
+  Ambient > Household Props > Age Props > Base Kitchen
+```
+
+| ルール | 説明 |
+|--------|------|
+| プロップ同士の遮蔽 | 同一レイヤー内では Z-index で管理 |
+| Ambient は常に最前面 | 湯気・光は他要素の上 |
+| Base との接地 | プロップは Base 要素と自然に接する |
+
+### サイズ制約
+
+| プロップカテゴリ | 最大幅 | 最大高さ | 備考 |
+|-----------------|--------|---------|------|
+| Age Props（大） | 120pt | 150pt | 調理器具、家電 |
+| Age Props（小） | 60pt | 80pt | 調味料、小物 |
+| Household Props | 80pt | 100pt | 追加小物 |
+| Ambient（個別） | 100pt | 120pt | 湯気、光等 |
+
+---
+
+## 2.5D 深度・パララックスポリシー
+
+### パララックス方針
+
+**マイクロパララックスのみ許可。派手な動きは禁止。**
+
+| レイヤー | パララックス | 振幅上限 | 備考 |
+|---------|------------|---------|------|
+| Base Kitchen | **なし** | 0pt | 完全固定 |
+| Age Props | **なし** | 0pt | 固定 |
+| Household Props | **なし** | 0pt | 固定 |
+| Time/Season Overlay | **なし** | 0pt | 固定（opacity のみ変化） |
+| Ambient Loops | **微小** | ±3pt translate | 呼吸・揺らぎ表現 |
+
+### Ambient アニメーション許可範囲
+
+| アニメーション種別 | 許可 | 制限 |
+|------------------|------|------|
+| Scale（呼吸） | ✅ | 0.98〜1.02（`scale.world.breathMin/Max`） |
+| Translate（揺らぎ） | ✅ | ±3pt |
+| Rotate | ⚠️ | ±2° 以内、控えめに |
+| Opacity（フェード） | ✅ | 0.0〜1.0 |
+
+### 禁止事項
+
+- デバイスジャイロ連動パララックス
+- スクロール連動パララックス
+- 急激な位置変化
+- 注目を奪う動き
 
 ---
 
@@ -93,9 +229,9 @@ Layer 1: Base Kitchen（ベースキッチン）
 
 ### 補間ルール
 
-- 時間帯間は**グラデーション補間**
+- 時間帯間は**グラデーション補間**（クロスフェード）
 - 段階切替は禁止（パッと変わらない）
-- 更新頻度: 15分間隔以上
+- 更新頻度: 15分間隔（詳細は「Runtime Update Rules」参照）
 - ユーザーが変化に気づかないレベルが理想
 
 ---
@@ -114,6 +250,47 @@ Layer 1: Base Kitchen（ベースキッチン）
 - 季節間は**だんだん変わる**（急変禁止）
 - 遷移期間: 約2週間でグラデーション
 - 派手な季節演出は禁止（現実の自然現象として）
+
+---
+
+## ランタイム更新ルール（Runtime Update Rules）
+
+### シグナル評価タイミング
+
+| トリガー | 評価対象 | 処理 |
+|---------|---------|------|
+| アプリ起動 | 全シグナル | 全レイヤー初期化 |
+| フォアグラウンド復帰 | Time, Season | overlay 更新 |
+| 15分タイマー | Time | Time overlay 補間 |
+| 日付変更 | Season | Season overlay 補間チェック |
+| 設定変更（Age/Household） | Props | Props 差し替え/追加削除 |
+
+### 時間オーバーレイ補間仕様
+
+```
+方式: 2枚クロスフェード
+- 現在時間帯 overlay: opacity 1.0 → 0.0
+- 次時間帯 overlay: opacity 0.0 → 1.0
+- 補間時間: 300ms（`duration.transition.overlay` 参照）
+- 評価間隔: 15分ごと
+```
+
+**連続補間は行わない。** 15分ごとのディスクリートな更新とし、更新時のみクロスフェードを実行。
+
+### キャッシュ・プリロード戦略
+
+| タイミング | ロード対象 | 方式 |
+|-----------|-----------|------|
+| 起動時（必須） | Base Kitchen, 現在 Time overlay, 現在 Season overlay | 同期ロード |
+| 起動後（遅延） | Age Props, Household Props | 非同期ロード |
+| 起動後（オプション） | 次の Time overlay（±1区分） | 低優先度プリフェッチ |
+| 設定変更時 | 対象 Props セット | 即時ロード |
+
+### メモリ管理
+
+- 未使用 overlay はアンロード可能
+- Props は切替時に前セットをアンロード
+- Ambient Loops は常駐（軽量のため）
 
 ---
 
@@ -162,9 +339,13 @@ Layer 1: Base Kitchen（ベースキッチン）
 
 | タイプ | フォーマット | 備考 |
 |--------|-------------|------|
-| 静止画 | WebP (優先) / PNG | 透過対応 |
-| オーバーレイ | PNG (透過) | 合成用 |
-| アニメーション | Lottie / WebM / スプライト | 要検討 |
+| Base Kitchen | PNG | 透過なし、最大品質 |
+| Props（Age/Household） | PNG | 透過あり |
+| Time/Season Overlay | PNG | 透過あり、合成効果焼き込み済み |
+| Ambient Loops（推奨） | Lottie (.json) | 軽量、スケーラブル |
+| Ambient Loops（代替） | スプライトシート (PNG) | Lottie 未対応時 |
+
+**注:** WebP は iOS/Android で対応が異なるため、互換性を優先し PNG を使用。将来的に WebP 対応を検討する場合は RN バージョンを確認すること。
 
 ### 解像度ターゲット
 
@@ -180,26 +361,35 @@ Layer 1: Base Kitchen（ベースキッチン）
 {layer}-{element}-{variant}@{scale}.{ext}
 
 例:
-base-kitchen-main@2x.webp
-age-props-young@2x.webp
+base-kitchen-main@2x.png
+age-props-young@2x.png
 time-overlay-night@2x.png
 season-overlay-spring@2x.png
-ambient-steam-loop.webm
+ambient-steam-loop.json
+household-props-family@2x.png
 ```
 
 ### フォルダ構造
 
 ```
-assets/
+assets/world/
 ├── base/
 │   └── kitchen/
 ├── props/
 │   ├── age/
+│   │   ├── young/
+│   │   ├── middle/
+│   │   └── senior/
 │   └── household/
+│       ├── single/
+│       └── family/
 ├── overlays/
 │   ├── time/
 │   └── season/
 └── ambient/
+    ├── steam/
+    ├── light/
+    └── plants/
 ```
 
 ---
@@ -208,27 +398,39 @@ assets/
 
 | 項目 | 目安 |
 |------|------|
-| 総アセットサイズ | < 50MB |
+| 総アセットサイズ（ダウンロード） | < 50MB |
 | メモリ使用量（世界表示時） | < 100MB |
 | 起動時ロード | Base + 現在のTime/Seasonのみ |
 | 遅延ロード | Props, 他のOverlay |
 
 ### 低スペック端末対応
 
-- @1xアセット使用
-- アニメーションフレームレート低下
-- 一部Ambient効果の省略
+- @1x アセット使用
+- Ambient Loops のフレームレート低下（30fps → 15fps）
+- 一部 Ambient 効果の省略（湯気のみ残す等）
+- Reduced Motion 時はアンビエント静止
 
 ---
 
 ## 品質チェックリスト
 
+### 視覚品質
+
 - [ ] Reality:Fantasy = 5:5 を維持しているか
 - [ ] 「住めそう」と感じられるか
-- [ ] 生活の痕跡があるか
-- [ ] 派手すぎないか
+- [ ] 生活の痕跡があるか（使用感、小傷等）
+- [ ] 派手すぎないか、注目を奪っていないか
+
+### 技術品質
+
 - [ ] 全レイヤー合成で自然に見えるか
 - [ ] 時間帯変化で構図が変わっていないか
+- [ ] Props がセーフゾーン（フッター領域等）にはみ出していないか
+- [ ] 透過境界にクリッピング/ジャギーがないか
+- [ ] グラデーションにバンディング（縞模様）がないか
+- [ ] 夜/深夜オーバーレイで暗くなりすぎていないか
+- [ ] Ambient ループが滑らかにつながっているか
+- [ ] @1x / @2x / @3x 間で品質差が許容範囲か
 
 ---
 
@@ -237,3 +439,4 @@ assets/
 | 日付 | 更新内容 |
 |------|---------|
 | 2026-02-01 | 初版作成 |
+| 2026-02-01 | モバイル専用強化: 実装互換性セクション追加、フォーマット整理（PNG優先）、Props配置ルール追加、パララックスポリシー追加、ランタイム更新ルール追加、画面別表示ルール追加、品質チェックリスト強化 |
