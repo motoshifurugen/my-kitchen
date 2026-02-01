@@ -434,6 +434,66 @@ assets/world/
 
 ---
 
+## Production Asset Checklist
+
+### A. World（2.5Dキッチン）静止アセット
+
+#### A1. Base Kitchen（必須）
+- Reference image: base-kitchen__master.png
+- [ ] `base/kitchen/base@1x.webp`
+- [ ] `base/kitchen/base@2x.webp`
+- [ ] `base/kitchen/base@3x.webp`（必要なら後回しOK）
+
+#### A2. Time Overlay（6枚） ※透過PNG推奨（合成しやすい）
+- [ ] `overlays/time/early-morning@2x.png`
+- [ ] `overlays/time/morning@2x.png`
+- [ ] `overlays/time/day@2x.png`
+- [ ] `overlays/time/evening@2x.png`
+- [ ] `overlays/time/night@2x.png`
+- [ ] `overlays/time/late-night@2x.png`
+
+#### A3. Season Overlay（4枚） ※透過PNG推奨
+- [ ] `overlays/season/spring@2x.png`
+- [ ] `overlays/season/summer@2x.png`
+- [ ] `overlays/season/autumn@2x.png`
+- [ ] `overlays/season/winter@2x.png`
+
+### B. Props（差し替え/追加の静止アセット）
+
+#### B1. Age Props（3セット）（仕様上 "差し替え"）
+- [ ] `props/age/young@2x.webp`
+- [ ] `props/age/adult@2x.webp`
+- [ ] `props/age/mature@2x.webp`
+
+#### B2. Household Props（2セット）（仕様上 "追加/削除"）
+- [ ] `props/household/solo@2x.webp`
+- [ ] `props/household/family@2x.webp`
+
+> **注:** MVPでSignals入力がまだなら、最初は固定でもOK。  
+> ただし "将来差し替えられる構造" はアプリ側に入れておくのが大事。
+
+### C. Ambient（アンビエント）アセット
+
+> **注:** ここは「画像だけで行く」方針なら、まず静止で作って後で動かすが安全です。
+
+#### C1. Ambient静止（最低3〜5個）
+- [ ] `ambient/steam_01@2x.webp`
+- [ ] `ambient/steam_02@2x.webp`（任意）
+- [ ] `ambient/light_dust@2x.webp`（任意）
+- [ ] `ambient/plant_sway_hint@2x.webp`（任意）
+- [ ] `ambient/curtain_sway_hint@2x.webp`（任意）
+
+#### （将来）C2. Ambientアニメ（Phase2以降）
+- [ ] Lottie/WebMへ差し替え可能にする（実装は先に"差し替え口"だけ用意）
+
+### D. UIアイコン（必要なら）
+
+> **注:** ExpoならアイコンはSVGが楽ですが、まずはプレースホルダでもOK。
+
+- [ ] Bottom tab icons（ホーム/棚/記録/探す/設定） ※最初はLucide等で仮置きでも良い
+
+---
+
 ## 更新履歴
 
 | 日付 | 更新内容 |
