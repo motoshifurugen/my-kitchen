@@ -1,0 +1,94 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "background": {
+      "primary": { "$value": "#FDFCFA", "$description": "メイン背景（生成り白）" },
+      "secondary": { "$value": "#F5F3EF", "$description": "サブ背景（淡いベージュ）" },
+      "tertiary": { "$value": "#FFFFFF", "$description": "カード背景等" }
+    },
+    "surface": {
+      "elevated": { "$value": "#FFFFFF", "$description": "浮いた要素" }
+    },
+    "text": {
+      "primary": { "$value": "#2C2825", "$description": "本文テキスト" },
+      "secondary": { "$value": "#6B6560", "$description": "補助テキスト" },
+      "tertiary": { "$value": "#9C9590", "$description": "ヒントテキスト" },
+      "inverse": { "$value": "#FDFCFA", "$description": "反転テキスト" }
+    },
+    "accent": {
+      "primary": { "$value": "#C17A50", "$description": "主要アクション（温かみのあるオレンジ）" },
+      "secondary": { "$value": "#7B9E87", "$description": "補助アクセント（落ち着いた緑）" },
+      "subtle": { "$value": "#E8DFD5", "$description": "控えめなアクセント" }
+    },
+    "semantic": {
+      "success": { "$value": "#7B9E87", "$description": "成功" },
+      "error": { "$value": "#C67B6B", "$description": "エラー" },
+      "warning": { "$value": "#D4A85A", "$description": "警告" }
+    },
+    "border": {
+      "default": { "$value": "#E5E0DA", "$description": "標準ボーダー" },
+      "focused": { "$value": "#C17A50", "$description": "フォーカス時" }
+    },
+    "divider": { "$value": "#E5E0DA", "$description": "区切り線" },
+    "overlay": { "$value": "rgba(44, 40, 37, 0.4)", "$description": "オーバーレイ背景" }
+  },
+  "typography": {
+    "fontFamily": {
+      "ios": { "$value": "Hiragino Sans, San Francisco, sans-serif" },
+      "android": { "$value": "Noto Sans JP, Roboto, sans-serif" }
+    },
+    "size": {
+      "xs": { "$value": "11pt", "$description": "キャプション" },
+      "sm": { "$value": "13pt", "$description": "補助テキスト" },
+      "md": { "$value": "15pt", "$description": "本文（基準）" },
+      "lg": { "$value": "17pt", "$description": "小見出し" },
+      "xl": { "$value": "20pt", "$description": "見出し" },
+      "2xl": { "$value": "24pt", "$description": "大見出し" }
+    },
+    "lineHeight": {
+      "tight": { "$value": "1.3", "$description": "見出し用" },
+      "normal": { "$value": "1.6", "$description": "本文用" },
+      "relaxed": { "$value": "1.8", "$description": "長文用" }
+    },
+    "letterSpacing": {
+      "normal": { "$value": "0", "$description": "基本" },
+      "wide": { "$value": "0.02em", "$description": "見出し用" }
+    }
+  },
+  "spacing": {
+    "xs": { "$value": "4pt" },
+    "sm": { "$value": "8pt" },
+    "md": { "$value": "16pt" },
+    "lg": { "$value": "24pt" },
+    "xl": { "$value": "32pt" },
+    "2xl": { "$value": "48pt" },
+    "screen": {
+      "horizontal": { "$value": "20pt" },
+      "vertical": { "$value": "16pt" }
+    }
+  },
+  "size": {
+    "tap": {
+      "minimum": { "$value": "44pt", "$description": "WCAG準拠最小" },
+      "recommended": { "$value": "48pt", "$description": "推奨サイズ" }
+    }
+  },
+  "radius": {
+    "none": { "$value": "0pt" },
+    "sm": { "$value": "4pt", "$description": "小さい要素" },
+    "md": { "$value": "8pt", "$description": "ボタン、入力" },
+    "lg": { "$value": "12pt", "$description": "カード" },
+    "xl": { "$value": "16pt", "$description": "モーダル" },
+    "full": { "$value": "9999pt", "$description": "円形" }
+  },
+  "shadow": {
+    "sm": { "$value": "0 1px 2px rgba(0,0,0,0.05)", "$description": "軽い浮き" },
+    "md": { "$value": "0 2px 8px rgba(0,0,0,0.08)", "$description": "カード" },
+    "lg": { "$value": "0 4px 16px rgba(0,0,0,0.10)", "$description": "モーダル" }
+  },
+  "footer": {
+    "height": { "$value": "56pt" },
+    "background": { "$value": "#FDFCFA" },
+    "border": { "$value": "1px solid #E5E0DA" }
+  }
+}

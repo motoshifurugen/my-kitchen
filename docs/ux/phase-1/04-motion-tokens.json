@@ -1,0 +1,94 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "duration": {
+    "instant": { "$value": "100ms", "$description": "即時フィードバック" },
+    "fast": { "$value": "150ms", "$description": "軽いインタラクション" },
+    "normal": { "$value": "200ms", "$description": "標準遷移" },
+    "slow": { "$value": "280ms", "$description": "情報量多い遷移" },
+    "slower": { "$value": "350ms", "$description": "演出的な動き" },
+    "transition": {
+      "fade": { "$value": "200ms" },
+      "slide": { "$value": "250ms" },
+      "overlay": { "$value": "200ms" }
+    },
+    "feedback": {
+      "tap": { "$value": "100ms" }
+    },
+    "celebration": { "$value": "350ms" },
+    "worldBreath": { "$value": "3000ms", "$description": "1サイクル" }
+  },
+  "easing": {
+    "easeOut": {
+      "$value": "cubic-bezier(0.33, 1, 0.68, 1)",
+      "$description": "標準（終わりがやわらかい）"
+    },
+    "easeInOut": {
+      "$value": "cubic-bezier(0.65, 0, 0.35, 1)",
+      "$description": "対称的な動き"
+    },
+    "easeOutSoft": {
+      "$value": "cubic-bezier(0.25, 1, 0.5, 1)",
+      "$description": "よりやわらかい終わり"
+    }
+  },
+  "transition": {
+    "fade": {
+      "duration": { "$value": "{duration.transition.fade}" },
+      "easing": { "$value": "{easing.easeOut}" },
+      "property": { "$value": "opacity" }
+    },
+    "slideRight": {
+      "duration": { "$value": "{duration.transition.slide}" },
+      "easing": { "$value": "{easing.easeOut}" },
+      "translateX": { "$value": "30pt" }
+    },
+    "slideLeft": {
+      "duration": { "$value": "{duration.transition.slide}" },
+      "easing": { "$value": "{easing.easeOut}" },
+      "translateX": { "$value": "-30pt" }
+    },
+    "overlay": {
+      "duration": { "$value": "{duration.transition.overlay}" },
+      "easing": { "$value": "{easing.easeOut}" },
+      "translateY": { "$value": "20pt" }
+    }
+  },
+  "worldLayer": {
+    "steam": {
+      "type": { "$value": "sway" },
+      "duration": { "$value": "3000ms" },
+      "amplitude": { "$value": "micro" }
+    },
+    "lightShift": {
+      "type": { "$value": "gradient" },
+      "duration": { "$value": "10000ms" },
+      "amplitude": { "$value": "micro" }
+    },
+    "curtainPlant": {
+      "type": { "$value": "sway" },
+      "duration": { "$value": "4000ms" },
+      "amplitude": { "$value": "micro" }
+    },
+    "characterBreath": {
+      "type": { "$value": "scale" },
+      "duration": { "$value": "3000ms" },
+      "scaleRange": { "$value": "0.98-1.02" }
+    }
+  },
+  "celebration": {
+    "sequence": [
+      { "step": "lightSpread", "delay": "100ms", "duration": "350ms" },
+      { "step": "messageShow", "delay": "450ms", "duration": "200ms" },
+      { "step": "pause", "delay": "650ms", "duration": "300ms" },
+      { "step": "shelfAdd", "delay": "950ms", "duration": "250ms" },
+      { "step": "returnTop", "delay": "1200ms", "duration": "200ms" }
+    ],
+    "totalDuration": { "$value": "1400ms" }
+  },
+  "reducedMotion": {
+    "slide": { "$value": "fade" },
+    "celebration": { "$value": "messageOnly" },
+    "worldBreath": { "$value": "doubled or static" },
+    "tapFeedback": { "$value": "keep" }
+  }
+}
