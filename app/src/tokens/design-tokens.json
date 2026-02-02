@@ -1,0 +1,176 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "my-kitchen design tokens for iOS/Android (React Native)",
+  "color": {
+    "background": {
+      "primary": { "$value": "#FDFCFA", "$description": "メイン背景（生成り白）" },
+      "secondary": { "$value": "#F5F3EF", "$description": "サブ背景（淡いベージュ）" },
+      "tertiary": { "$value": "#FFFFFF", "$description": "カード背景等" }
+    },
+    "surface": {
+      "elevated": { "$value": "#FFFFFF", "$description": "浮いた要素（シャドウと併用）" },
+      "pressed": { "$value": "#F0EBE5", "$description": "押下時の表面（タップフィードバック）" },
+      "selected": { "$value": "#F5EDE6", "$description": "選択状態の表面" }
+    },
+    "text": {
+      "primary": { "$value": "#2C2825", "$description": "本文テキスト" },
+      "secondary": { "$value": "#6B6560", "$description": "補助テキスト" },
+      "tertiary": { "$value": "#9C9590", "$description": "ヒントテキスト" },
+      "inverse": { "$value": "#FDFCFA", "$description": "反転テキスト" },
+      "disabled": { "$value": "#B8B3AD", "$description": "無効状態テキスト" },
+      "link": { "$value": "#C17A50", "$description": "リンクテキスト" }
+    },
+    "icon": {
+      "default": { "$value": "#6B6560", "$description": "標準アイコン" },
+      "active": { "$value": "#C17A50", "$description": "アクティブ状態アイコン" },
+      "disabled": { "$value": "#B8B3AD", "$description": "無効状態アイコン" }
+    },
+    "accent": {
+      "primary": { "$value": "#C17A50", "$description": "主要アクション（温かみのあるオレンジ）" },
+      "secondary": { "$value": "#7B9E87", "$description": "補助アクセント（落ち着いた緑）" },
+      "subtle": { "$value": "#E8DFD5", "$description": "控えめなアクセント" }
+    },
+    "semantic": {
+      "success": {
+        "text": { "$value": "#5A7A63", "$description": "成功メッセージテキスト" },
+        "background": { "$value": "#EDF5EF", "$description": "成功背景" },
+        "border": { "$value": "#7B9E87", "$description": "成功ボーダー" }
+      },
+      "error": {
+        "text": { "$value": "#9E5A4D", "$description": "エラーメッセージテキスト" },
+        "background": { "$value": "#F9F0EE", "$description": "エラー背景" },
+        "border": { "$value": "#C67B6B", "$description": "エラーボーダー" }
+      },
+      "warning": {
+        "text": { "$value": "#8A7038", "$description": "警告メッセージテキスト" },
+        "background": { "$value": "#FBF6EC", "$description": "警告背景" },
+        "border": { "$value": "#D4A85A", "$description": "警告ボーダー" }
+      }
+    },
+    "border": {
+      "default": { "$value": "#E5E0DA", "$description": "標準ボーダー" },
+      "focused": { "$value": "#C17A50", "$description": "フォーカス時ボーダー" },
+      "disabled": { "$value": "#E5E0DA", "$description": "無効状態ボーダー" }
+    },
+    "divider": { "$value": "#E5E0DA", "$description": "区切り線" },
+    "overlay": {
+      "scrim": { "$value": "rgba(44, 40, 37, 0.4)", "$description": "モーダル背景暗転（強め）" },
+      "soft": { "$value": "rgba(44, 40, 37, 0.15)", "$description": "世界レイヤーぼかし時（控えめ）" }
+    }
+  },
+  "opacity": {
+    "disabled": { "$value": 0.4, "$description": "無効状態の全般的な透明度" },
+    "pressed": { "$value": 0.08, "$description": "押下時オーバーレイ" }
+  },
+  "typography": {
+    "fontFamily": {
+      "ios": { "$value": "System", "$description": "iOS: fontFamily省略でシステムフォント使用を推奨" },
+      "android": { "$value": "Noto Sans JP", "$description": "Android: Noto Sans JP指定" }
+    },
+    "weight": {
+      "regular": { "$value": 400, "$description": "本文、説明文" },
+      "medium": { "$value": 500, "$description": "小見出し、強調" },
+      "semibold": { "$value": 600, "$description": "見出し、ボタンラベル" }
+    },
+    "size": {
+      "xs": { "$value": "11pt", "$description": "キャプション" },
+      "sm": { "$value": "13pt", "$description": "補助テキスト" },
+      "md": { "$value": "15pt", "$description": "本文（基準）" },
+      "lg": { "$value": "17pt", "$description": "小見出し" },
+      "xl": { "$value": "20pt", "$description": "見出し" },
+      "2xl": { "$value": "24pt", "$description": "大見出し" }
+    },
+    "lineHeight": {
+      "tight": { "$value": 1.3, "$description": "見出し用" },
+      "normal": { "$value": 1.6, "$description": "本文用" },
+      "relaxed": { "$value": 1.8, "$description": "長文用" }
+    },
+    "letterSpacing": {
+      "normal": { "$value": "0", "$description": "基本" },
+      "wide": { "$value": "0.02em", "$description": "見出し用" }
+    },
+    "style": {
+      "heading": {
+        "$description": "画面タイトル",
+        "size": { "$value": "20pt" },
+        "weight": { "$value": 600 },
+        "lineHeight": { "$value": 1.3 }
+      },
+      "subheading": {
+        "$description": "セクション見出し",
+        "size": { "$value": "17pt" },
+        "weight": { "$value": 500 },
+        "lineHeight": { "$value": 1.3 }
+      },
+      "body": {
+        "$description": "本文",
+        "size": { "$value": "15pt" },
+        "weight": { "$value": 400 },
+        "lineHeight": { "$value": 1.6 }
+      },
+      "caption": {
+        "$description": "補足、日付",
+        "size": { "$value": "11pt" },
+        "weight": { "$value": 400 },
+        "lineHeight": { "$value": 1.6 }
+      },
+      "button": {
+        "$description": "ボタンラベル",
+        "size": { "$value": "15pt" },
+        "weight": { "$value": 600 },
+        "lineHeight": { "$value": 1.3 }
+      }
+    }
+  },
+  "spacing": {
+    "xs": { "$value": "4pt", "$description": "最小余白" },
+    "sm": { "$value": "8pt", "$description": "小余白" },
+    "md": { "$value": "16pt", "$description": "標準余白" },
+    "lg": { "$value": "24pt", "$description": "大余白" },
+    "xl": { "$value": "32pt", "$description": "特大余白" },
+    "2xl": { "$value": "48pt", "$description": "セクション間" },
+    "screen": {
+      "horizontal": { "$value": "20pt", "$description": "画面水平マージン" },
+      "vertical": { "$value": "16pt", "$description": "画面垂直マージン" }
+    }
+  },
+  "size": {
+    "tap": {
+      "minimum": { "$value": "44pt", "$description": "Apple HIG / Material Design 推奨の最小サイズ" },
+      "recommended": { "$value": "48pt", "$description": "推奨サイズ（余裕を持った操作性）" }
+    }
+  },
+  "radius": {
+    "none": { "$value": "0pt", "$description": "角なし" },
+    "sm": { "$value": "4pt", "$description": "小さい要素" },
+    "md": { "$value": "8pt", "$description": "ボタン、入力" },
+    "lg": { "$value": "12pt", "$description": "カード" },
+    "xl": { "$value": "16pt", "$description": "モーダル" },
+    "full": { "$value": "9999pt", "$description": "円形" }
+  },
+  "shadow": {
+    "sm": { "$value": "0 1px 2px rgba(0,0,0,0.05)", "$description": "軽い浮き" },
+    "md": { "$value": "0 2px 8px rgba(0,0,0,0.08)", "$description": "カード" },
+    "lg": { "$value": "0 4px 16px rgba(0,0,0,0.10)", "$description": "モーダル" }
+  },
+  "elevation": {
+    "base": { "$value": 0, "$description": "通常コンテンツ" },
+    "card": { "$value": 1, "$description": "カード、浮き要素" },
+    "footer": { "$value": 10, "$description": "固定フッター" },
+    "overlay": { "$value": 50, "$description": "オーバーレイ背景（モーダル下）" },
+    "modal": { "$value": 100, "$description": "モーダル、ダイアログ" },
+    "toast": { "$value": 200, "$description": "トースト通知" }
+  },
+  "footer": {
+    "height": { "$value": "56pt", "$description": "フッター高さ" },
+    "background": { "$value": "#FDFCFA", "$description": "フッター背景色" },
+    "border": { "$value": "1px solid #E5E0DA", "$description": "フッター上部ボーダー" }
+  },
+  "focus": {
+    "ring": {
+      "color": { "$value": "#C17A50", "$description": "フォーカスリング色（color.border.focused と同一）" },
+      "width": { "$value": "2pt", "$description": "フォーカスリング幅" },
+      "offset": { "$value": "2pt", "$description": "要素との間隔" }
+    }
+  }
+}

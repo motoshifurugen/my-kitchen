@@ -3,10 +3,11 @@
  *
  * Loads and provides strongly-typed access to motion tokens from the UX spec.
  * Source of truth: docs/ux/phase-1/04-motion-tokens.json
+ * (copied to app/src/tokens/motion-tokens.json for Metro bundler compatibility)
  */
 
 import { Easing } from 'react-native';
-import rawTokens from '../../../docs/ux/phase-1/04-motion-tokens.json';
+import rawTokens from './motion-tokens.json';
 
 // ============================================================================
 // Type Definitions

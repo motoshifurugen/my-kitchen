@@ -3,9 +3,10 @@
  *
  * Loads and provides strongly-typed access to design tokens from the UX spec.
  * Source of truth: docs/ux/phase-1/03-design-tokens.json
+ * (copied to app/src/tokens/design-tokens.json for Metro bundler compatibility)
  */
 
-import rawTokens from '../../../docs/ux/phase-1/03-design-tokens.json';
+import rawTokens from './design-tokens.json';
 
 // ============================================================================
 // Type Definitions
