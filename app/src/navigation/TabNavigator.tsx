@@ -158,7 +158,12 @@ const styles = StyleSheet.create({
     width: theme.size.tap.recommended,
     height: theme.size.tap.recommended,
     marginTop: -theme.spacing.md,
-    ...theme.shadow.md,
+    // Shadow (explicit for Fabric compatibility)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tabIcon: {
     fontSize: 20,
@@ -171,7 +176,9 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   tabLabel: {
-    ...theme.textStyles.caption,
+    fontSize: theme.textStyles.caption.fontSize,
+    fontWeight: theme.textStyles.caption.fontWeight,
+    lineHeight: theme.textStyles.caption.lineHeight,
     color: theme.colors.text.secondary,
     marginTop: theme.spacing.xs,
   },
