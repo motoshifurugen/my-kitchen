@@ -3,16 +3,17 @@
  *
  * Renders the layered 2.5D kitchen world.
  *
- * Layer stack (bottom to top):
+ * MVP Layer stack (bottom to top):
  * 1. BaseKitchen - The kitchen background
- * 2. AgeProps - Props based on age group setting
- * 3. HouseholdProps - Props based on household type
- * 4. TimeOverlay - Time-of-day lighting overlay
- * 5. SeasonOverlay - Seasonal color overlay
- * 6. Ambient - Steam, light dust, etc.
+ * 2. TimeOverlay - Time-of-day lighting overlay
+ * 3. Character - Static character sprite based on age group
+ * 4. (Mask - Wired for future use, not rendered in MVP)
  *
- * Time/Season overlays support interpolation between adjacent states.
- * Ambient layer is disabled when reduced motion is enabled.
+ * Post-MVP additions:
+ * - Season overlay
+ * - Household props
+ * - Ambient animations (steam, light dust)
+ * - Character frame animation
  */
 
 import React, { useEffect, useRef, useMemo } from 'react';
@@ -23,18 +24,13 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   getBaseKitchenAsset,
   getTimeOverlayAsset,
-  getSeasonOverlayAsset,
-  getAgePropsAsset,
-  getHouseholdPropsAsset,
-  getAmbientAsset,
+  getCharacterAsset,
+  getRoomMaskAsset,
 } from '../../assets/manifest';
 import {
   getTimeOverlayState,
-  getSeasonOverlayState,
   getCurrentTimeOpacity,
   getNextTimeOpacity,
-  getCurrentSeasonOpacity,
-  getNextSeasonOpacity,
 } from '../../utils/time';
 import { colors, duration, easing, scale } from '../../tokens';
 
@@ -51,6 +47,10 @@ export interface WorldSceneProps {
    * Development mode: show colored overlays for placeholder assets
    */
   devMode?: boolean;
+  /**
+   * Show mask layer (for debugging)
+   */
+  showMask?: boolean;
 }
 
 // ============================================================================
@@ -58,24 +58,17 @@ export interface WorldSceneProps {
 // ============================================================================
 
 const DEV_COLORS = {
-  base: '#8B7355',      // Brown for kitchen base
-  ageProps: '#A0522D',  // Sienna for age props
-  household: '#CD853F', // Peru for household props
+  base: '#8B7355', // Brown for kitchen base
+  character: '#A0522D', // Sienna for character
   time: {
-    'early-morning': 'rgba(100, 120, 150, 0.3)', // Cool blue
-    morning: 'rgba(255, 250, 230, 0.2)',         // Warm light
-    day: 'rgba(255, 255, 255, 0.1)',             // Neutral
-    evening: 'rgba(255, 200, 150, 0.3)',         // Golden
-    night: 'rgba(50, 50, 80, 0.3)',              // Dark blue
-    'late-night': 'rgba(30, 30, 50, 0.4)',       // Deep night
+    earlyMorning: 'rgba(100, 120, 150, 0.3)', // Cool blue
+    morning: 'rgba(255, 250, 230, 0.2)', // Warm light
+    day: 'rgba(255, 255, 255, 0.1)', // Neutral
+    evening: 'rgba(255, 200, 150, 0.3)', // Golden
+    night: 'rgba(50, 50, 80, 0.3)', // Dark blue
+    lateNight: 'rgba(30, 30, 50, 0.4)', // Deep night
   },
-  season: {
-    spring: 'rgba(200, 255, 200, 0.15)',  // Light green
-    summer: 'rgba(255, 255, 200, 0.15)',  // Light yellow
-    autumn: 'rgba(255, 200, 150, 0.15)',  // Warm orange
-    winter: 'rgba(200, 220, 255, 0.15)',  // Cool blue
-  },
-  ambient: 'rgba(255, 255, 255, 0.1)',
+  mask: 'rgba(0, 0, 0, 0.5)',
 };
 
 // ============================================================================
@@ -85,34 +78,23 @@ const DEV_COLORS = {
 export const WorldScene: React.FC<WorldSceneProps> = ({
   blurred = false,
   devMode = __DEV__,
+  showMask = false,
 }) => {
-  const {
-    timeOfDay,
-    season,
-    ageGroup,
-    householdType,
-    timeBlend,
-    seasonBlend,
-  } = useWorldSignals();
+  const { timeOfDay, ageGroup, timeBlend } = useWorldSignals();
 
-  const { shouldAnimateWorld, isEnabled: reducedMotion } = useReducedMotion();
+  const { shouldAnimateWorld } = useReducedMotion();
 
   // Animation values
   const breathAnim = useRef(new Animated.Value(1)).current;
   const blurAnim = useRef(new Animated.Value(blurred ? 1 : 0)).current;
 
-  // Get current layer states
+  // Get current time overlay state for blending
   const timeState = useMemo(
     () => getTimeOverlayState(timeOfDay, timeBlend),
     [timeOfDay, timeBlend]
   );
 
-  const seasonState = useMemo(
-    () => getSeasonOverlayState(season, seasonBlend),
-    [season, seasonBlend]
-  );
-
-  // Breathing animation
+  // Breathing animation (subtle world pulse)
   useEffect(() => {
     if (!shouldAnimateWorld) {
       breathAnim.setValue(1);
@@ -141,7 +123,7 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
     return () => breathCycle.stop();
   }, [shouldAnimateWorld, breathAnim]);
 
-  // Blur animation
+  // Blur animation for screen transitions
   useEffect(() => {
     Animated.timing(blurAnim, {
       toValue: blurred ? 1 : 0,
@@ -151,11 +133,9 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
     }).start();
   }, [blurred, blurAnim]);
 
-  // Calculate opacities
+  // Calculate time overlay opacities for blending
   const currentTimeOpacity = getCurrentTimeOpacity(timeState.blend);
   const nextTimeOpacity = getNextTimeOpacity(timeState.blend);
-  const currentSeasonOpacity = getCurrentSeasonOpacity(seasonState.blend);
-  const nextSeasonOpacity = getNextSeasonOpacity(seasonState.blend);
 
   return (
     <Animated.View
@@ -174,61 +154,42 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
         devColor={devMode ? DEV_COLORS.base : undefined}
       />
 
-      {/* Layer 2: Age Props */}
-      <WorldLayer
-        source={getAgePropsAsset(ageGroup)}
-        zIndex={2}
-        testID="world-age-props"
-        devColor={devMode ? DEV_COLORS.ageProps : undefined}
-      />
-
-      {/* Layer 3: Household Props */}
-      <WorldLayer
-        source={getHouseholdPropsAsset(householdType)}
-        zIndex={3}
-        testID="world-household-props"
-        devColor={devMode ? DEV_COLORS.household : undefined}
-      />
-
-      {/* Layer 4: Time Overlays (current + next for blending) */}
+      {/* Layer 2: Time Overlay (current) */}
       <WorldLayer
         source={getTimeOverlayAsset(timeState.current)}
         opacity={currentTimeOpacity}
-        zIndex={4}
+        zIndex={2}
         testID="world-time-current"
         devColor={devMode ? DEV_COLORS.time[timeState.current] : undefined}
       />
+
+      {/* Layer 2b: Time Overlay (next, for blending) */}
       {timeState.blend > 0 && (
         <WorldLayer
           source={getTimeOverlayAsset(timeState.next)}
           opacity={nextTimeOpacity}
-          zIndex={5}
+          zIndex={3}
           testID="world-time-next"
           devColor={devMode ? DEV_COLORS.time[timeState.next] : undefined}
         />
       )}
 
-      {/* Layer 5: Season Overlays (current + next for blending) */}
+      {/* Layer 3: Character (static in MVP) */}
       <WorldLayer
-        source={getSeasonOverlayAsset(seasonState.current)}
-        opacity={currentSeasonOpacity}
-        zIndex={6}
-        testID="world-season-current"
-        devColor={devMode ? DEV_COLORS.season[seasonState.current] : undefined}
+        source={getCharacterAsset(ageGroup)}
+        zIndex={4}
+        testID="world-character"
+        devColor={devMode ? DEV_COLORS.character : undefined}
       />
-      {seasonState.blend > 0 && (
-        <WorldLayer
-          source={getSeasonOverlayAsset(seasonState.next)}
-          opacity={nextSeasonOpacity}
-          zIndex={7}
-          testID="world-season-next"
-          devColor={devMode ? DEV_COLORS.season[seasonState.next] : undefined}
-        />
-      )}
 
-      {/* Layer 6: Ambient Effects (disabled in reduced motion) */}
-      {shouldAnimateWorld && (
-        <AmbientLayer devMode={devMode} />
+      {/* Layer 4: Mask (wired for future, not shown by default) */}
+      {showMask && (
+        <WorldLayer
+          source={getRoomMaskAsset()}
+          zIndex={5}
+          testID="world-mask"
+          devColor={devMode ? DEV_COLORS.mask : undefined}
+        />
       )}
 
       {/* Blur overlay for screen transitions */}
@@ -243,52 +204,6 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
         />
       )}
     </Animated.View>
-  );
-};
-
-// ============================================================================
-// Ambient Layer (animated steam, light dust)
-// ============================================================================
-
-interface AmbientLayerProps {
-  devMode?: boolean;
-}
-
-const AmbientLayer: React.FC<AmbientLayerProps> = ({ devMode }) => {
-  const steamOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Gentle steam animation
-    const steamCycle = Animated.loop(
-      Animated.sequence([
-        Animated.timing(steamOpacity, {
-          toValue: 0.6,
-          duration: duration.world.steam / 2,
-          easing: easing.world,
-          useNativeDriver: true,
-        }),
-        Animated.timing(steamOpacity, {
-          toValue: 0.3,
-          duration: duration.world.steam / 2,
-          easing: easing.world,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    steamCycle.start();
-
-    return () => steamCycle.stop();
-  }, [steamOpacity]);
-
-  return (
-    <WorldLayer
-      source={getAmbientAsset('steam_01')}
-      opacity={steamOpacity}
-      zIndex={10}
-      testID="world-ambient"
-      devColor={devMode ? DEV_COLORS.ambient : undefined}
-    />
   );
 };
 

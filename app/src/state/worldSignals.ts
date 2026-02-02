@@ -17,12 +17,12 @@ import { create } from 'zustand';
 // ============================================================================
 
 export type TimeOfDay =
-  | 'early-morning'  // 4:00-6:00
-  | 'morning'        // 6:00-10:00
-  | 'day'            // 10:00-16:00
-  | 'evening'        // 16:00-19:00
-  | 'night'          // 19:00-23:00
-  | 'late-night';    // 23:00-4:00
+  | 'earlyMorning'  // 4:00-6:00
+  | 'morning'       // 6:00-10:00
+  | 'day'           // 10:00-16:00
+  | 'evening'       // 16:00-19:00
+  | 'night'         // 19:00-23:00
+  | 'lateNight';    // 23:00-4:00
 
 export type Season =
   | 'spring'   // March-May
@@ -66,12 +66,12 @@ export interface WorldSignalsState extends WorldSignals {
 // ============================================================================
 
 export const TIME_BUCKETS: { start: number; end: number; name: TimeOfDay }[] = [
-  { start: 4, end: 6, name: 'early-morning' },
+  { start: 4, end: 6, name: 'earlyMorning' },
   { start: 6, end: 10, name: 'morning' },
   { start: 10, end: 16, name: 'day' },
   { start: 16, end: 19, name: 'evening' },
   { start: 19, end: 23, name: 'night' },
-  { start: 23, end: 4, name: 'late-night' }, // Wraps around midnight
+  { start: 23, end: 4, name: 'lateNight' }, // Wraps around midnight
 ];
 
 export const getTimeOfDayFromHour = (hour: number): TimeOfDay => {
@@ -215,12 +215,12 @@ export const useWorldSignals = create<WorldSignalsState>((set) => ({
 // ============================================================================
 
 export const TIME_ORDER: TimeOfDay[] = [
-  'early-morning',
+  'earlyMorning',
   'morning',
   'day',
   'evening',
   'night',
-  'late-night',
+  'lateNight',
 ];
 
 export const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter'];

@@ -2,18 +2,19 @@
  * Asset Manifest
  *
  * Central registry for all 2.5D world assets.
- * This manifest maps logical asset IDs to file paths.
+ * Maps stable enum keys to actual asset files.
+ *
+ * MVP Policy:
+ * - Always use @2x assets (no PixelRatio switching yet)
+ * - Enum keys use camelCase (earlyMorning, not early-morning)
+ * - Filenames use snake_case (time_early_morning)
  *
  * Asset folder structure:
  *   assets/
- *     base/kitchen/base@2x.webp
- *     overlays/time/{early-morning|morning|day|evening|night|late-night}@2x.png
- *     overlays/season/{spring|summer|autumn|winter}@2x.png
- *     props/age/{young|adult|mature}@2x.webp
- *     props/household/{solo|family}@2x.webp
- *     ambient/{steam_01|steam_02|light_dust}@2x.webp
- *
- * TODO: Replace placeholder requires with actual asset files when available.
+ *     base/kitchen/base-kitchen@2x.webp
+ *     overlays/time/{time_early_morning|time_morning|...}@2x.webp
+ *     characters/{girl_age10_base|girl_age20_base|girl_age40_base}@2x.webp
+ *     masks/room_mask@2x.webp
  */
 
 import { ImageSourcePropType } from 'react-native';
@@ -31,6 +32,11 @@ export interface AssetManifest {
     time: Record<TimeOfDay, ImageSourcePropType>;
     season: Record<Season, ImageSourcePropType>;
   };
+  characters: Record<AgeGroup, ImageSourcePropType>;
+  masks: {
+    room: ImageSourcePropType;
+  };
+  // Legacy props (placeholder for future use)
   props: {
     age: Record<AgeGroup, ImageSourcePropType>;
     household: Record<HouseholdType, ImageSourcePropType>;
@@ -43,46 +49,40 @@ export interface AssetManifest {
 }
 
 // ============================================================================
-// Placeholder Asset (colored rectangle for development)
+// Placeholder Asset (for assets not yet created)
 // ============================================================================
 
-// TODO: Remove this placeholder when real assets are available
-// For now, we use a 1x1 pixel transparent PNG as placeholder
-// In development, layers will show background colors instead
-const PLACEHOLDER = { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' };
+const PLACEHOLDER = {
+  uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+};
 
 // ============================================================================
 // Asset Manifest
+//
+// Mapping: enum key -> filename
+//   TimeOfDay.earlyMorning -> time_early_morning@2x.webp
+//   TimeOfDay.lateNight    -> time_late_night@2x.webp
+//   AgeGroup.young         -> girl_age10_base@2x.webp
+//   AgeGroup.adult         -> girl_age20_base@2x.webp
+//   AgeGroup.mature        -> girl_age40_base@2x.webp
 // ============================================================================
 
-/**
- * When real assets are available, replace PLACEHOLDER with:
- *
- * require('../../assets/base/kitchen/base@2x.webp')
- *
- * For time overlays:
- * require('../../assets/overlays/time/morning@2x.png')
- *
- * etc.
- */
 export const assetManifest: AssetManifest = {
   base: {
-    // TODO: Replace with require('../../assets/base/kitchen/base@2x.webp')
-    kitchen: PLACEHOLDER,
+    kitchen: require('../../assets/base/kitchen/base-kitchen@2x.webp'),
   },
 
   overlays: {
     time: {
-      // TODO: Replace with actual time overlay assets
-      'early-morning': PLACEHOLDER,
-      morning: PLACEHOLDER,
-      day: PLACEHOLDER,
-      evening: PLACEHOLDER,
-      night: PLACEHOLDER,
-      'late-night': PLACEHOLDER,
+      earlyMorning: require('../../assets/overlays/time/time_early_morning@2x.webp'),
+      morning: require('../../assets/overlays/time/time_morning@2x.webp'),
+      day: require('../../assets/overlays/time/time_day@2x.webp'),
+      evening: require('../../assets/overlays/time/time_evening@2x.webp'),
+      night: require('../../assets/overlays/time/time_night@2x.webp'),
+      lateNight: require('../../assets/overlays/time/time_late_night@2x.webp'),
     },
     season: {
-      // TODO: Replace with actual season overlay assets
+      // TODO: Season overlays not yet created
       spring: PLACEHOLDER,
       summer: PLACEHOLDER,
       autumn: PLACEHOLDER,
@@ -90,22 +90,32 @@ export const assetManifest: AssetManifest = {
     },
   },
 
+  characters: {
+    young: require('../../assets/characters/girl_age10_base@2x.webp'),
+    adult: require('../../assets/characters/girl_age20_base@2x.webp'),
+    mature: require('../../assets/characters/girl_age40_base@2x.webp'),
+  },
+
+  masks: {
+    room: require('../../assets/masks/room_mask@2x.webp'),
+  },
+
+  // Legacy props structure (keep for backward compatibility)
   props: {
     age: {
-      // TODO: Replace with actual age prop assets
-      young: PLACEHOLDER,
-      adult: PLACEHOLDER,
-      mature: PLACEHOLDER,
+      young: require('../../assets/characters/girl_age10_base@2x.webp'),
+      adult: require('../../assets/characters/girl_age20_base@2x.webp'),
+      mature: require('../../assets/characters/girl_age40_base@2x.webp'),
     },
     household: {
-      // TODO: Replace with actual household prop assets
+      // TODO: Household props not yet created
       solo: PLACEHOLDER,
       family: PLACEHOLDER,
     },
   },
 
   ambient: {
-    // TODO: Replace with actual ambient loop assets
+    // TODO: Ambient assets not yet created
     steam_01: PLACEHOLDER,
     steam_02: PLACEHOLDER,
     light_dust: PLACEHOLDER,
@@ -138,7 +148,22 @@ export const getSeasonOverlayAsset = (season: Season): ImageSourcePropType => {
 };
 
 /**
+ * Get the character asset for a given age group
+ */
+export const getCharacterAsset = (ageGroup: AgeGroup): ImageSourcePropType => {
+  return assetManifest.characters[ageGroup];
+};
+
+/**
+ * Get the room mask asset
+ */
+export const getRoomMaskAsset = (): ImageSourcePropType => {
+  return assetManifest.masks.room;
+};
+
+/**
  * Get the age props asset for a given age group
+ * @deprecated Use getCharacterAsset instead
  */
 export const getAgePropsAsset = (ageGroup: AgeGroup): ImageSourcePropType => {
   return assetManifest.props.age[ageGroup];
@@ -165,17 +190,16 @@ export const getAmbientAsset = (
 // ============================================================================
 
 /**
- * Critical assets needed for initial render
+ * Critical assets needed for initial render (MVP)
  * These should be preloaded on app start
  */
 export const getCriticalAssets = (
   timeOfDay: TimeOfDay,
-  season: Season
+  _season: Season // Not used in MVP, kept for API compatibility
 ): ImageSourcePropType[] => {
   return [
     assetManifest.base.kitchen,
     assetManifest.overlays.time[timeOfDay],
-    assetManifest.overlays.season[season],
   ];
 };
 
@@ -184,11 +208,10 @@ export const getCriticalAssets = (
  */
 export const getSecondaryAssets = (
   ageGroup: AgeGroup,
-  householdType: HouseholdType
+  _householdType: HouseholdType // Not used in MVP
 ): ImageSourcePropType[] => {
   return [
-    assetManifest.props.age[ageGroup],
-    assetManifest.props.household[householdType],
+    assetManifest.characters[ageGroup],
   ];
 };
 
@@ -202,3 +225,29 @@ export const getAmbientAssets = (): ImageSourcePropType[] => {
     assetManifest.ambient.light_dust,
   ];
 };
+
+// ============================================================================
+// Asset Addition Guide
+// ============================================================================
+
+/**
+ * HOW TO ADD NEW ASSETS:
+ *
+ * 1. Place the master file in docs/ux/phase-1/assets/_source/{category}/
+ *    Example: docs/ux/phase-1/assets/_source/overlays/time/time_dusk__master.png
+ *
+ * 2. Generate @2x and @1x WebP outputs to app/assets/{category}/
+ *    Example: app/assets/overlays/time/time_dusk@2x.webp
+ *
+ * 3. Add the enum key to the type definition (if new)
+ *    Example: In worldSignals.ts, add 'dusk' to TimeOfDay
+ *
+ * 4. Add the require() to this manifest
+ *    Example: dusk: require('../../assets/overlays/time/time_dusk@2x.webp')
+ *
+ * 5. Update TIME_ORDER in worldSignals.ts (if time-related)
+ *
+ * Naming convention:
+ *   Enum key: camelCase (earlyMorning)
+ *   Filename: snake_case (time_early_morning)
+ */

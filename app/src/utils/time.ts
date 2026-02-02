@@ -124,12 +124,12 @@ export const getNextSeasonOpacity = (blend: number): number => {
  * - Higher = cooler (blue)
  */
 export const TIME_COLOR_TEMPS: Record<TimeOfDay, number> = {
-  'early-morning': 4500, // Neutral to slightly cool
+  earlyMorning: 4500, // Neutral to slightly cool
   morning: 5500, // Slightly cool, bright
   day: 6500, // Neutral, maximum brightness
   evening: 4000, // Warm, golden hour
   night: 3500, // Warm, indoor lighting
-  'late-night': 2700, // Very warm, amber
+  lateNight: 2700, // Very warm, amber
 };
 
 /**
