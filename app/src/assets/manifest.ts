@@ -5,16 +5,17 @@
  * Maps stable enum keys to actual asset files.
  *
  * MVP Policy:
- * - Always use @2x assets (no PixelRatio switching yet)
+ * - Metro auto-selects @2x/@1x based on device pixel ratio
  * - Enum keys use camelCase (earlyMorning, not early-morning)
  * - Filenames use snake_case (time_early_morning)
+ * - Require paths use base name WITHOUT @2x suffix (Metro handles this)
  *
  * Asset folder structure:
  *   assets/
- *     base/kitchen/base-kitchen@2x.webp
- *     overlays/time/{time_early_morning|time_morning|...}@2x.webp
- *     characters/{girl_age10_base|girl_age20_base|girl_age40_base}@2x.webp
- *     masks/room_mask@2x.webp
+ *     base/kitchen/base-kitchen@{1x,2x}.webp
+ *     overlays/time/{time_early_morning|...}@{1x,2x}.webp
+ *     characters/{girl_age10_base|...}@{1x,2x}.webp
+ *     masks/room_mask@{1x,2x}.webp
  */
 
 import { ImageSourcePropType } from 'react-native';
@@ -59,27 +60,27 @@ const PLACEHOLDER = {
 // ============================================================================
 // Asset Manifest
 //
-// Mapping: enum key -> filename
-//   TimeOfDay.earlyMorning -> time_early_morning@2x.webp
-//   TimeOfDay.lateNight    -> time_late_night@2x.webp
-//   AgeGroup.young         -> girl_age10_base@2x.webp
-//   AgeGroup.adult         -> girl_age20_base@2x.webp
-//   AgeGroup.mature        -> girl_age40_base@2x.webp
+// Mapping: enum key -> filename (Metro auto-selects @1x/@2x based on device)
+//   TimeOfDay.earlyMorning -> time_early_morning.webp (@1x or @2x)
+//   TimeOfDay.lateNight    -> time_late_night.webp
+//   AgeGroup.young         -> girl_age10_base.webp
+//   AgeGroup.adult         -> girl_age20_base.webp
+//   AgeGroup.mature        -> girl_age40_base.webp
 // ============================================================================
 
 export const assetManifest: AssetManifest = {
   base: {
-    kitchen: require('../../assets/base/kitchen/base-kitchen@2x.webp'),
+    kitchen: require('../../assets/base/kitchen/base-kitchen.webp'),
   },
 
   overlays: {
     time: {
-      earlyMorning: require('../../assets/overlays/time/time_early_morning@2x.webp'),
-      morning: require('../../assets/overlays/time/time_morning@2x.webp'),
-      day: require('../../assets/overlays/time/time_day@2x.webp'),
-      evening: require('../../assets/overlays/time/time_evening@2x.webp'),
-      night: require('../../assets/overlays/time/time_night@2x.webp'),
-      lateNight: require('../../assets/overlays/time/time_late_night@2x.webp'),
+      earlyMorning: require('../../assets/overlays/time/time_early_morning.webp'),
+      morning: require('../../assets/overlays/time/time_morning.webp'),
+      day: require('../../assets/overlays/time/time_day.webp'),
+      evening: require('../../assets/overlays/time/time_evening.webp'),
+      night: require('../../assets/overlays/time/time_night.webp'),
+      lateNight: require('../../assets/overlays/time/time_late_night.webp'),
     },
     season: {
       // TODO: Season overlays not yet created
@@ -91,21 +92,21 @@ export const assetManifest: AssetManifest = {
   },
 
   characters: {
-    young: require('../../assets/characters/girl_age10_base@2x.webp'),
-    adult: require('../../assets/characters/girl_age20_base@2x.webp'),
-    mature: require('../../assets/characters/girl_age40_base@2x.webp'),
+    young: require('../../assets/characters/girl_age10_base.webp'),
+    adult: require('../../assets/characters/girl_age20_base.webp'),
+    mature: require('../../assets/characters/girl_age40_base.webp'),
   },
 
   masks: {
-    room: require('../../assets/masks/room_mask@2x.webp'),
+    room: require('../../assets/masks/room_mask.webp'),
   },
 
   // Legacy props structure (keep for backward compatibility)
   props: {
     age: {
-      young: require('../../assets/characters/girl_age10_base@2x.webp'),
-      adult: require('../../assets/characters/girl_age20_base@2x.webp'),
-      mature: require('../../assets/characters/girl_age40_base@2x.webp'),
+      young: require('../../assets/characters/girl_age10_base.webp'),
+      adult: require('../../assets/characters/girl_age20_base.webp'),
+      mature: require('../../assets/characters/girl_age40_base.webp'),
     },
     household: {
       // TODO: Household props not yet created
@@ -242,8 +243,8 @@ export const getAmbientAssets = (): ImageSourcePropType[] => {
  * 3. Add the enum key to the type definition (if new)
  *    Example: In worldSignals.ts, add 'dusk' to TimeOfDay
  *
- * 4. Add the require() to this manifest
- *    Example: dusk: require('../../assets/overlays/time/time_dusk@2x.webp')
+ * 4. Add the require() to this manifest (use base name, Metro finds @1x/@2x)
+ *    Example: dusk: require('../../assets/overlays/time/time_dusk.webp')
  *
  * 5. Update TIME_ORDER in worldSignals.ts (if time-related)
  *
