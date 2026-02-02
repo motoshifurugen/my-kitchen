@@ -5,13 +5,14 @@
  * the 2.5D kitchen scene with ambient animations.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
   ScrollView,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -25,10 +26,18 @@ import {
 } from '../state/worldSignals';
 
 // ============================================================================
-// Dev Time Selector (Development Only)
+// Dev Layer Controls (Development Only)
 // ============================================================================
 
-const DevTimeSelector: React.FC = () => {
+interface DevLayerControlsProps {
+  showCharacter: boolean;
+  setShowCharacter: (value: boolean) => void;
+}
+
+const DevLayerControls: React.FC<DevLayerControlsProps> = ({
+  showCharacter,
+  setShowCharacter,
+}) => {
   const { timeOfDay, setTimeOfDay, ageGroup, setAgeGroup } = useWorldSignals();
 
   const ageGroups: AgeGroup[] = ['young', 'adult', 'mature'];
@@ -51,10 +60,21 @@ const DevTimeSelector: React.FC = () => {
 
   return (
     <View style={devStyles.container}>
-      <Text style={devStyles.title}>DEV: Layer Test</Text>
+      <Text style={devStyles.title}>DEV: Layer Controls</Text>
 
-      {/* Time Selector */}
-      <Text style={devStyles.label}>Time Overlay</Text>
+      {/* Layer Visibility Toggle */}
+      <View style={devStyles.toggleRow}>
+        <Text style={devStyles.toggleLabel}>Character Layer</Text>
+        <Switch
+          value={showCharacter}
+          onValueChange={setShowCharacter}
+          trackColor={{ false: '#555', true: theme.colors.accent.primary }}
+          thumbColor="#fff"
+        />
+      </View>
+
+      {/* Time Selector - Now switches the base kitchen render */}
+      <Text style={devStyles.label}>Kitchen Time (base render)</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -82,7 +102,7 @@ const DevTimeSelector: React.FC = () => {
       </ScrollView>
 
       {/* Character Selector */}
-      <Text style={devStyles.label}>Character</Text>
+      <Text style={devStyles.label}>Character Age</Text>
       <View style={devStyles.row}>
         {ageGroups.map((age) => (
           <TouchableOpacity
@@ -114,7 +134,7 @@ const devStyles = StyleSheet.create({
     bottom: 100,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     borderRadius: 12,
     padding: 12,
   },
@@ -124,6 +144,17 @@ const devStyles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     opacity: 0.7,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  toggleLabel: {
+    color: '#fff',
+    fontSize: 12,
+    opacity: 0.9,
   },
   label: {
     color: '#fff',
@@ -168,10 +199,13 @@ const devStyles = StyleSheet.create({
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
 
+  // Dev toggle for character layer
+  const [showCharacter, setShowCharacter] = useState(true);
+
   return (
     <View style={styles.container}>
       {/* Kitchen World */}
-      <WorldScene />
+      <WorldScene showCharacter={showCharacter} />
 
       {/* Header with Settings Icon */}
       <SafeAreaView edges={['top']} style={styles.header}>
@@ -189,8 +223,13 @@ export const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* Dev-only time selector for testing layer switching */}
-      {__DEV__ && <DevTimeSelector />}
+      {/* Dev-only layer controls */}
+      {__DEV__ && (
+        <DevLayerControls
+          showCharacter={showCharacter}
+          setShowCharacter={setShowCharacter}
+        />
+      )}
     </View>
   );
 };

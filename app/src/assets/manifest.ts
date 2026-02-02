@@ -7,15 +7,16 @@
  * MVP Policy:
  * - Metro auto-selects @2x/@1x based on device pixel ratio
  * - Enum keys use camelCase (earlyMorning, not early-morning)
- * - Filenames use snake_case (time_early_morning)
+ * - Filenames use snake_case (kitchen_time_early_morning)
  * - Require paths use base name WITHOUT @2x suffix (Metro handles this)
  *
  * Asset folder structure:
  *   assets/
- *     base/kitchen/base-kitchen@{1x,2x}.webp
- *     overlays/time/{time_early_morning|...}@{1x,2x}.webp
+ *     base/kitchen/base-kitchen@{1x,2x}.webp           (static base - legacy)
+ *     base/kitchen_time/kitchen_time_X@{1x,2x}.webp   (time-based base renders)
  *     characters/{girl_age10_base|...}@{1x,2x}.webp
  *     masks/room_mask@{1x,2x}.webp
+ *     overlays/time/... (DEPRECATED - use kitchenTime instead)
  */
 
 import { ImageSourcePropType } from 'react-native';
@@ -27,9 +28,13 @@ import { TimeOfDay, Season, AgeGroup, HouseholdType } from '../state/worldSignal
 
 export interface AssetManifest {
   base: {
+    /** @deprecated Use kitchenTime[timeOfDay] instead */
     kitchen: ImageSourcePropType;
   };
+  /** Time-based kitchen renders (Plan B: base replacement) */
+  kitchenTime: Record<TimeOfDay, ImageSourcePropType>;
   overlays: {
+    /** @deprecated These are full renders, not overlays. Use kitchenTime instead. */
     time: Record<TimeOfDay, ImageSourcePropType>;
     season: Record<Season, ImageSourcePropType>;
   };
@@ -37,7 +42,6 @@ export interface AssetManifest {
   masks: {
     room: ImageSourcePropType;
   };
-  // Legacy props (placeholder for future use)
   props: {
     age: Record<AgeGroup, ImageSourcePropType>;
     household: Record<HouseholdType, ImageSourcePropType>;
@@ -61,8 +65,8 @@ const PLACEHOLDER = {
 // Asset Manifest
 //
 // Mapping: enum key -> filename (Metro auto-selects @1x/@2x based on device)
-//   TimeOfDay.earlyMorning -> time_early_morning.webp (@1x or @2x)
-//   TimeOfDay.lateNight    -> time_late_night.webp
+//   TimeOfDay.earlyMorning -> kitchen_time_early_morning.webp
+//   TimeOfDay.lateNight    -> kitchen_time_late_night.webp
 //   AgeGroup.young         -> girl_age10_base.webp
 //   AgeGroup.adult         -> girl_age20_base.webp
 //   AgeGroup.mature        -> girl_age40_base.webp
@@ -70,10 +74,24 @@ const PLACEHOLDER = {
 
 export const assetManifest: AssetManifest = {
   base: {
+    // Legacy static base kitchen (kept for backward compatibility)
     kitchen: require('../../assets/base/kitchen/base-kitchen.webp'),
   },
 
+  // Time-based kitchen renders (Plan B: base replacement)
+  // These are full kitchen renders per time-of-day, used as the base layer
+  kitchenTime: {
+    earlyMorning: require('../../assets/base/kitchen_time/kitchen_time_early_morning.webp'),
+    morning: require('../../assets/base/kitchen_time/kitchen_time_morning.webp'),
+    day: require('../../assets/base/kitchen_time/kitchen_time_day.webp'),
+    evening: require('../../assets/base/kitchen_time/kitchen_time_evening.webp'),
+    night: require('../../assets/base/kitchen_time/kitchen_time_night.webp'),
+    lateNight: require('../../assets/base/kitchen_time/kitchen_time_late_night.webp'),
+  },
+
   overlays: {
+    // DEPRECATED: These are actually full renders, not overlays.
+    // Kept for backward compatibility. Use kitchenTime instead.
     time: {
       earlyMorning: require('../../assets/overlays/time/time_early_morning.webp'),
       morning: require('../../assets/overlays/time/time_morning.webp'),
@@ -101,7 +119,6 @@ export const assetManifest: AssetManifest = {
     room: require('../../assets/masks/room_mask.webp'),
   },
 
-  // Legacy props structure (keep for backward compatibility)
   props: {
     age: {
       young: require('../../assets/characters/girl_age10_base.webp'),
@@ -128,7 +145,16 @@ export const assetManifest: AssetManifest = {
 // ============================================================================
 
 /**
+ * Get the time-based kitchen asset for a given time of day (Plan B)
+ * This replaces the static base kitchen with a time-appropriate render.
+ */
+export const getKitchenTimeAsset = (timeOfDay: TimeOfDay): ImageSourcePropType => {
+  return assetManifest.kitchenTime[timeOfDay];
+};
+
+/**
  * Get the base kitchen asset
+ * @deprecated Use getKitchenTimeAsset(timeOfDay) instead
  */
 export const getBaseKitchenAsset = (): ImageSourcePropType => {
   return assetManifest.base.kitchen;
@@ -136,6 +162,7 @@ export const getBaseKitchenAsset = (): ImageSourcePropType => {
 
 /**
  * Get the time overlay asset for a given time of day
+ * @deprecated These are full renders, not overlays. Use getKitchenTimeAsset instead.
  */
 export const getTimeOverlayAsset = (timeOfDay: TimeOfDay): ImageSourcePropType => {
   return assetManifest.overlays.time[timeOfDay];
@@ -199,8 +226,7 @@ export const getCriticalAssets = (
   _season: Season // Not used in MVP, kept for API compatibility
 ): ImageSourcePropType[] => {
   return [
-    assetManifest.base.kitchen,
-    assetManifest.overlays.time[timeOfDay],
+    assetManifest.kitchenTime[timeOfDay],
   ];
 };
 
@@ -235,20 +261,20 @@ export const getAmbientAssets = (): ImageSourcePropType[] => {
  * HOW TO ADD NEW ASSETS:
  *
  * 1. Place the master file in docs/ux/phase-1/assets/_source/{category}/
- *    Example: docs/ux/phase-1/assets/_source/overlays/time/time_dusk__master.png
+ *    Example: docs/ux/phase-1/assets/_source/base/kitchen_time/kitchen_time_dusk__master.png
  *
  * 2. Generate @2x and @1x WebP outputs to app/assets/{category}/
- *    Example: app/assets/overlays/time/time_dusk@2x.webp
+ *    Example: app/assets/base/kitchen_time/kitchen_time_dusk@2x.webp
  *
  * 3. Add the enum key to the type definition (if new)
  *    Example: In worldSignals.ts, add 'dusk' to TimeOfDay
  *
  * 4. Add the require() to this manifest (use base name, Metro finds @1x/@2x)
- *    Example: dusk: require('../../assets/overlays/time/time_dusk.webp')
+ *    Example: dusk: require('../../assets/base/kitchen_time/kitchen_time_dusk.webp')
  *
  * 5. Update TIME_ORDER in worldSignals.ts (if time-related)
  *
  * Naming convention:
  *   Enum key: camelCase (earlyMorning)
- *   Filename: snake_case (time_early_morning)
+ *   Filename: snake_case (kitchen_time_early_morning)
  */

@@ -3,17 +3,18 @@
  *
  * A single layer in the 2.5D kitchen world composition.
  * Supports opacity animation for blending between states.
+ *
+ * Uses expo-image for better performance and consistent contentFit.
  */
 
 import React from 'react';
 import {
   StyleSheet,
-  Image,
   ImageSourcePropType,
   Animated,
   ViewStyle,
-  ImageStyle,
 } from 'react-native';
+import { Image } from 'expo-image';
 
 // ============================================================================
 // Types
@@ -29,6 +30,10 @@ export interface WorldLayerProps {
    * Development mode: show colored overlay when asset is placeholder
    */
   devColor?: string;
+  /**
+   * Whether this layer is visible (for dev debugging)
+   */
+  visible?: boolean;
 }
 
 // ============================================================================
@@ -42,7 +47,13 @@ export const WorldLayer: React.FC<WorldLayerProps> = ({
   style,
   testID,
   devColor,
+  visible = true,
 }) => {
+  // Skip rendering if not visible (dev toggle)
+  if (!visible) {
+    return null;
+  }
+
   // Check if source is a placeholder (data URI)
   const isPlaceholder =
     typeof source === 'object' &&
@@ -51,15 +62,12 @@ export const WorldLayer: React.FC<WorldLayerProps> = ({
 
   // If it's a placeholder and we have a dev color, show colored overlay
   if (isPlaceholder && devColor) {
-    const animatedOpacity = opacity instanceof Animated.Value ? opacity : opacity;
     return (
       <Animated.View
         style={[
-          styles.container,
+          StyleSheet.absoluteFill,
           { zIndex, backgroundColor: devColor },
-          typeof animatedOpacity === 'number'
-            ? { opacity: animatedOpacity }
-            : { opacity: animatedOpacity },
+          typeof opacity === 'number' ? { opacity } : { opacity },
           style,
         ]}
         testID={testID}
@@ -67,53 +75,44 @@ export const WorldLayer: React.FC<WorldLayerProps> = ({
     );
   }
 
-  // Render with animated opacity
+  // Render with animated opacity using Animated.View wrapper
+  // (expo-image doesn't support Animated.Value directly)
   if (opacity instanceof Animated.Value) {
     return (
-      <Animated.Image
-        source={source}
+      <Animated.View
         style={[
-          styles.container as ImageStyle,
-          styles.image,
+          StyleSheet.absoluteFill,
           { zIndex, opacity },
-          style as ImageStyle,
+          style,
         ]}
-        resizeMode="cover"
         testID={testID}
-      />
+      >
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          contentPosition="center"
+        />
+      </Animated.View>
     );
   }
 
   // Render with static opacity
   return (
-    <Image
-      source={source}
+    <Animated.View
       style={[
-        styles.container as ImageStyle,
-        styles.image,
+        StyleSheet.absoluteFill,
         { zIndex, opacity },
-        style as ImageStyle,
+        style,
       ]}
-      resizeMode="cover"
       testID={testID}
-    />
+    >
+      <Image
+        source={source}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="center"
+      />
+    </Animated.View>
   );
 };
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-});

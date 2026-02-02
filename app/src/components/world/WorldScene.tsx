@@ -3,35 +3,25 @@
  *
  * Renders the layered 2.5D kitchen world.
  *
- * MVP Layer stack (bottom to top):
- * 1. BaseKitchen - The kitchen background
- * 2. TimeOverlay - Time-of-day lighting overlay
- * 3. Character - Static character sprite based on age group
- * 4. (Mask - Wired for future use, not rendered in MVP)
+ * Layer stack (bottom to top):
+ * 1. KitchenTime - Time-based kitchen render (base layer)
+ * 2. Character - Static character sprite based on age group
+ * 3. (Mask - Wired for future use, not rendered in MVP)
  *
- * Post-MVP additions:
- * - Season overlay
- * - Household props
- * - Ambient animations (steam, light dust)
- * - Character frame animation
+ * Note: Time overlay layer is REMOVED (Plan B: base replacement).
+ * The kitchenTime assets are full renders per time-of-day, not overlays.
  */
 
-import React, { useEffect, useRef, useMemo } from 'react';
-import { StyleSheet, View, Animated, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Animated } from 'react-native';
 import { WorldLayer } from './WorldLayer';
 import { useWorldSignals } from '../../state/worldSignals';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
-  getBaseKitchenAsset,
-  getTimeOverlayAsset,
+  getKitchenTimeAsset,
   getCharacterAsset,
   getRoomMaskAsset,
 } from '../../assets/manifest';
-import {
-  getTimeOverlayState,
-  getCurrentTimeOpacity,
-  getNextTimeOpacity,
-} from '../../utils/time';
 import { colors, duration, easing, scale } from '../../tokens';
 
 // ============================================================================
@@ -51,6 +41,10 @@ export interface WorldSceneProps {
    * Show mask layer (for debugging)
    */
   showMask?: boolean;
+  /**
+   * DEV: Show character layer (set to false to isolate rendering issues)
+   */
+  showCharacter?: boolean;
 }
 
 // ============================================================================
@@ -60,14 +54,6 @@ export interface WorldSceneProps {
 const DEV_COLORS = {
   base: '#8B7355', // Brown for kitchen base
   character: '#A0522D', // Sienna for character
-  time: {
-    earlyMorning: 'rgba(100, 120, 150, 0.3)', // Cool blue
-    morning: 'rgba(255, 250, 230, 0.2)', // Warm light
-    day: 'rgba(255, 255, 255, 0.1)', // Neutral
-    evening: 'rgba(255, 200, 150, 0.3)', // Golden
-    night: 'rgba(50, 50, 80, 0.3)', // Dark blue
-    lateNight: 'rgba(30, 30, 50, 0.4)', // Deep night
-  },
   mask: 'rgba(0, 0, 0, 0.5)',
 };
 
@@ -79,20 +65,15 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
   blurred = false,
   devMode = __DEV__,
   showMask = false,
+  showCharacter = true,
 }) => {
-  const { timeOfDay, ageGroup, timeBlend } = useWorldSignals();
+  const { timeOfDay, ageGroup } = useWorldSignals();
 
   const { shouldAnimateWorld } = useReducedMotion();
 
   // Animation values
   const breathAnim = useRef(new Animated.Value(1)).current;
   const blurAnim = useRef(new Animated.Value(blurred ? 1 : 0)).current;
-
-  // Get current time overlay state for blending
-  const timeState = useMemo(
-    () => getTimeOverlayState(timeOfDay, timeBlend),
-    [timeOfDay, timeBlend]
-  );
 
   // Breathing animation (subtle world pulse)
   useEffect(() => {
@@ -133,64 +114,48 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
     }).start();
   }, [blurred, blurAnim]);
 
-  // Calculate time overlay opacities for blending
-  const currentTimeOpacity = getCurrentTimeOpacity(timeState.blend);
-  const nextTimeOpacity = getNextTimeOpacity(timeState.blend);
-
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [{ scale: breathAnim }],
-        },
-      ]}
-    >
-      {/* Layer 1: Base Kitchen */}
-      <WorldLayer
-        source={getBaseKitchenAsset()}
-        zIndex={1}
-        testID="world-base"
-        devColor={devMode ? DEV_COLORS.base : undefined}
-      />
-
-      {/* Layer 2: Time Overlay (current) */}
-      <WorldLayer
-        source={getTimeOverlayAsset(timeState.current)}
-        opacity={currentTimeOpacity}
-        zIndex={2}
-        testID="world-time-current"
-        devColor={devMode ? DEV_COLORS.time[timeState.current] : undefined}
-      />
-
-      {/* Layer 2b: Time Overlay (next, for blending) */}
-      {timeState.blend > 0 && (
+    <View style={styles.container}>
+      {/* Inner container with breathing animation */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            transform: [{ scale: breathAnim }],
+          },
+        ]}
+      >
+        {/* Layer 1: Time-based Kitchen (Plan B: base replacement) */}
+        {/* This is the full kitchen render for the current time of day */}
         <WorldLayer
-          source={getTimeOverlayAsset(timeState.next)}
-          opacity={nextTimeOpacity}
-          zIndex={3}
-          testID="world-time-next"
-          devColor={devMode ? DEV_COLORS.time[timeState.next] : undefined}
+          source={getKitchenTimeAsset(timeOfDay)}
+          zIndex={1}
+          testID="world-kitchen-time"
+          devColor={devMode ? DEV_COLORS.base : undefined}
         />
-      )}
 
-      {/* Layer 3: Character (static in MVP) */}
-      <WorldLayer
-        source={getCharacterAsset(ageGroup)}
-        zIndex={4}
-        testID="world-character"
-        devColor={devMode ? DEV_COLORS.character : undefined}
-      />
+        {/* NOTE: Time overlay layer REMOVED (was causing double-room artifact) */}
+        {/* The kitchenTime assets are full renders, not transparent overlays */}
 
-      {/* Layer 4: Mask (wired for future, not shown by default) */}
-      {showMask && (
+        {/* Layer 2: Character (static in MVP) */}
         <WorldLayer
-          source={getRoomMaskAsset()}
-          zIndex={5}
-          testID="world-mask"
-          devColor={devMode ? DEV_COLORS.mask : undefined}
+          source={getCharacterAsset(ageGroup)}
+          zIndex={2}
+          testID="world-character"
+          devColor={devMode ? DEV_COLORS.character : undefined}
+          visible={showCharacter}
         />
-      )}
+
+        {/* Layer 3: Mask (wired for future, not shown by default) */}
+        {showMask && (
+          <WorldLayer
+            source={getRoomMaskAsset()}
+            zIndex={3}
+            testID="world-mask"
+            devColor={devMode ? DEV_COLORS.mask : undefined}
+          />
+        )}
+      </Animated.View>
 
       {/* Blur overlay for screen transitions */}
       {blurred && (
@@ -203,7 +168,7 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
           ]}
         />
       )}
-    </Animated.View>
+    </View>
   );
 };
 
@@ -211,23 +176,13 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
 // Styles
 // ============================================================================
 
-const { width, height } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width,
-    height,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.background.primary,
   },
   blurOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.overlay.soft,
     zIndex: 100,
   },
