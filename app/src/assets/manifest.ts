@@ -278,3 +278,35 @@ export const getAmbientAssets = (): ImageSourcePropType[] => {
  *   Enum key: camelCase (earlyMorning)
  *   Filename: snake_case (kitchen_time_early_morning)
  */
+
+// AUTO-GENERATED:MENU_ICONS (do not edit)
+export const MENU_ICONS = {
+  "menu_chilled_tofu": require("../../assets/menu-icons/menu_chilled_tofu@2x.webp"),
+  "menu_curry_rice": require("../../assets/menu-icons/menu_curry_rice@2x.webp"),
+  "menu_egg_rice": require("../../assets/menu-icons/menu_egg_rice@2x.webp"),
+  "menu_fried_rice": require("../../assets/menu-icons/menu_fried_rice@2x.webp"),
+  "menu_ginger_pork": require("../../assets/menu-icons/menu_ginger_pork@2x.webp"),
+  "menu_grilled_salmon": require("../../assets/menu-icons/menu_grilled_salmon@2x.webp"),
+  "menu_gyoza": require("../../assets/menu-icons/menu_gyoza@2x.webp"),
+  "menu_gyudon": require("../../assets/menu-icons/menu_gyudon@2x.webp"),
+  "menu_hamburger": require("../../assets/menu-icons/menu_hamburger@2x.webp"),
+  "menu_karaage": require("../../assets/menu-icons/menu_karaage@2x.webp"),
+  "menu_miso_soup": require("../../assets/menu-icons/menu_miso_soup@2x.webp"),
+  "menu_natto_rice": require("../../assets/menu-icons/menu_natto_rice@2x.webp"),
+  "menu_nikujaga": require("../../assets/menu-icons/menu_nikujaga@2x.webp"),
+  "menu_omurice": require("../../assets/menu-icons/menu_omurice@2x.webp"),
+  "menu_onigiri": require("../../assets/menu-icons/menu_onigiri@2x.webp"),
+  "menu_oyakodon": require("../../assets/menu-icons/menu_oyakodon@2x.webp"),
+  "menu_potato_salad": require("../../assets/menu-icons/menu_potato_salad@2x.webp"),
+  "menu_ramen": require("../../assets/menu-icons/menu_ramen@2x.webp"),
+  "menu_salad": require("../../assets/menu-icons/menu_salad@2x.webp"),
+  "menu_sashimi": require("../../assets/menu-icons/menu_sashimi@2x.webp"),
+  "menu_soba": require("../../assets/menu-icons/menu_soba@2x.webp"),
+  "menu_stew": require("../../assets/menu-icons/menu_stew@2x.webp"),
+  "menu_stir_fried pork": require("../../assets/menu-icons/menu_stir_fried pork@2x.webp"),
+  "menu_tamagoyaki": require("../../assets/menu-icons/menu_tamagoyaki@2x.webp"),
+  "menu_tonkatsu": require("../../assets/menu-icons/menu_tonkatsu@2x.webp"),
+  "menu_udon": require("../../assets/menu-icons/menu_udon@2x.webp"),
+  "menu_yakisoba": require("../../assets/menu-icons/menu_yakisoba@2x.webp"),
+} as const;
+// END AUTO-GENERATED:MENU_ICONS

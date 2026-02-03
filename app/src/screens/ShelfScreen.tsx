@@ -5,71 +5,78 @@
  * World is visible but blurred in the background.
  */
 
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { WorldScene } from '../components/world';
-import { theme, commonStyles } from '../tokens';
+import React, { useState } from 'react';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Text, PressableBase } from '../components/atoms';
+import { AppShell } from '../components/templates';
+import { HeaderBar, EmptyStateBlock } from '../components/organisms';
+import { theme } from '../tokens';
+
+type TabType = 'timeline' | 'category';
 
 export const ShelfScreen: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabType>('timeline');
+
   return (
-    <View style={styles.container}>
-      {/* Blurred World Background */}
-      <WorldScene blurred />
+    <AppShell showWorldBackground>
+      {/* Header */}
+      <HeaderBar title="アーカイブ" centerTitle />
 
-      {/* Content */}
-      <SafeAreaView edges={['top']} style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>アーカイブ</Text>
-        </View>
-
-        {/* Tab Bar (時系列 | カテゴリ) */}
-        <View style={styles.tabBar}>
-          <View style={[styles.tab, styles.tabActive]}>
-            <Text style={[styles.tabText, styles.tabTextActive]}>時系列</Text>
-          </View>
-          <View style={styles.tab}>
-            <Text style={styles.tabText}>カテゴリ</Text>
-          </View>
-        </View>
-
-        {/* Grid Content */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.gridContainer}
+      {/* Tab Bar (時系列 | カテゴリ) */}
+      <View style={styles.tabBar}>
+        <PressableBase
+          style={StyleSheet.flatten([
+            styles.tab,
+            activeTab === 'timeline' ? styles.tabActive : {},
+          ])}
+          onPress={() => setActiveTab('timeline')}
+          accessibilityLabel="時系列"
+          accessibilityRole="tab"
         >
-          {/* Empty State */}
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>まだ記録がありません</Text>
-            <Text style={styles.emptySubtitle}>
-              料理を記録すると、ここに並びます
-            </Text>
-          </View>
+          <Text
+            variant="body"
+            color={activeTab === 'timeline' ? theme.colors.accent.primary : theme.colors.text.secondary}
+            style={activeTab === 'timeline' ? styles.tabTextActive : undefined}
+          >
+            時系列
+          </Text>
+        </PressableBase>
+        <PressableBase
+          style={StyleSheet.flatten([
+            styles.tab,
+            activeTab === 'category' ? styles.tabActive : {},
+          ])}
+          onPress={() => setActiveTab('category')}
+          accessibilityLabel="カテゴリ"
+          accessibilityRole="tab"
+        >
+          <Text
+            variant="body"
+            color={activeTab === 'category' ? theme.colors.accent.primary : theme.colors.text.secondary}
+            style={activeTab === 'category' ? styles.tabTextActive : undefined}
+          >
+            カテゴリ
+          </Text>
+        </PressableBase>
+      </View>
 
-          {/* TODO: Recipe cards grid will be rendered here */}
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      {/* Grid Content */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.gridContainer}
+      >
+        <EmptyStateBlock
+          title="まだ記録がありません"
+          subtitle="料理を記録すると、ここに並びます"
+        />
+
+        {/* TODO: Recipe cards grid will be rendered here */}
+      </ScrollView>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background.primary,
-  },
-  content: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: theme.spacing.screen.horizontal,
-    paddingVertical: theme.spacing.md,
-  },
-  title: {
-    ...theme.textStyles.heading,
-    textAlign: 'center',
-  },
   tabBar: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.screen.horizontal,
@@ -85,12 +92,7 @@ const styles = StyleSheet.create({
   tabActive: {
     borderBottomColor: theme.colors.accent.primary,
   },
-  tabText: {
-    ...theme.textStyles.body,
-    color: theme.colors.text.secondary,
-  },
   tabTextActive: {
-    color: theme.colors.accent.primary,
     fontWeight: '600',
   },
   scrollView: {
@@ -99,20 +101,6 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingHorizontal: theme.spacing.screen.horizontal,
     paddingBottom: theme.spacing.xl,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.spacing['2xl'],
-  },
-  emptyTitle: {
-    ...theme.textStyles.subheading,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.sm,
-  },
-  emptySubtitle: {
-    ...theme.textStyles.body,
-    color: theme.colors.text.tertiary,
+    flexGrow: 1,
   },
 });

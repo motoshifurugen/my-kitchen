@@ -9,14 +9,14 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
-  TouchableOpacity,
   ScrollView,
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { WorldScene } from '../components/world';
+import { Text, PressableBase } from '../components/atoms';
+import { IconButton, Chip } from '../components/molecules';
 import { theme } from '../tokens';
 import {
   useWorldSignals,
@@ -42,7 +42,6 @@ const DevLayerControls: React.FC<DevLayerControlsProps> = ({
 
   const ageGroups: AgeGroup[] = ['young', 'adult', 'mature'];
 
-  // Display labels for time buttons
   const timeLabels: Record<TimeOfDay, string> = {
     earlyMorning: '早朝',
     morning: '朝',
@@ -60,11 +59,13 @@ const DevLayerControls: React.FC<DevLayerControlsProps> = ({
 
   return (
     <View style={devStyles.container}>
-      <Text style={devStyles.title}>DEV: Layer Controls</Text>
+      <Text variant="caption" color="#fff" style={devStyles.title}>
+        DEV: Layer Controls
+      </Text>
 
       {/* Layer Visibility Toggle */}
       <View style={devStyles.toggleRow}>
-        <Text style={devStyles.toggleLabel}>Character Layer</Text>
+        <Text variant="caption" color="#fff">Character Layer</Text>
         <Switch
           value={showCharacter}
           onValueChange={setShowCharacter}
@@ -73,55 +74,37 @@ const DevLayerControls: React.FC<DevLayerControlsProps> = ({
         />
       </View>
 
-      {/* Time Selector - Now switches the base kitchen render */}
-      <Text style={devStyles.label}>Kitchen Time (base render)</Text>
+      {/* Time Selector */}
+      <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
+        Kitchen Time (base render)
+      </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={devStyles.scrollRow}
       >
         {TIME_ORDER.map((time) => (
-          <TouchableOpacity
+          <Chip
             key={time}
-            style={[
-              devStyles.chip,
-              timeOfDay === time && devStyles.chipActive,
-            ]}
+            label={timeLabels[time]}
+            selected={timeOfDay === time}
             onPress={() => setTimeOfDay(time)}
-          >
-            <Text
-              style={[
-                devStyles.chipText,
-                timeOfDay === time && devStyles.chipTextActive,
-              ]}
-            >
-              {timeLabels[time]}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
       {/* Character Selector */}
-      <Text style={devStyles.label}>Character Age</Text>
+      <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
+        Character Age
+      </Text>
       <View style={devStyles.row}>
         {ageGroups.map((age) => (
-          <TouchableOpacity
+          <Chip
             key={age}
-            style={[
-              devStyles.chip,
-              ageGroup === age && devStyles.chipActive,
-            ]}
+            label={ageLabels[age]}
+            selected={ageGroup === age}
             onPress={() => setAgeGroup(age)}
-          >
-            <Text
-              style={[
-                devStyles.chipText,
-                ageGroup === age && devStyles.chipTextActive,
-              ]}
-            >
-              {ageLabels[age]}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
     </View>
@@ -139,9 +122,6 @@ const devStyles = StyleSheet.create({
     padding: 12,
   },
   title: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
     marginBottom: 8,
     opacity: 0.7,
   },
@@ -151,44 +131,18 @@ const devStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  toggleLabel: {
-    color: '#fff',
-    fontSize: 12,
-    opacity: 0.9,
-  },
   label: {
-    color: '#fff',
-    fontSize: 10,
     marginBottom: 4,
     marginTop: 8,
-    opacity: 0.5,
   },
   scrollRow: {
     flexDirection: 'row',
+    gap: 8,
   },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
-  },
-  chipActive: {
-    backgroundColor: theme.colors.accent.primary,
-  },
-  chipText: {
-    color: '#fff',
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  chipTextActive: {
-    opacity: 1,
-    fontWeight: '600',
   },
 });
 
@@ -209,18 +163,14 @@ export const HomeScreen: React.FC = () => {
 
       {/* Header with Settings Icon */}
       <SafeAreaView edges={['top']} style={styles.header}>
-        <TouchableOpacity
-          style={styles.settingsButton}
+        <IconButton
+          icon="Gear"
           onPress={() => {
-            // Navigate to settings
             // @ts-ignore - navigation type will be set up in TabNavigator
             navigation.navigate('Settings');
           }}
           accessibilityLabel="設定"
-          accessibilityRole="button"
-        >
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
+        />
       </SafeAreaView>
 
       {/* Dev-only layer controls */}
@@ -252,14 +202,5 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingHorizontal: theme.spacing.screen.horizontal,
     paddingTop: theme.spacing.sm,
-  },
-  settingsButton: {
-    width: theme.size.tap.recommended,
-    height: theme.size.tap.recommended,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  settingsIcon: {
-    fontSize: 24,
   },
 });

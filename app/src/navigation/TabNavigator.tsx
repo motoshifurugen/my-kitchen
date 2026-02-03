@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +28,7 @@ import {
   SearchScreen,
   SettingsScreen,
 } from '../screens';
+import { Icon, IconName, Text } from '../components/atoms';
 import { theme, footer as footerTokens } from '../tokens';
 
 // ============================================================================
@@ -51,24 +52,33 @@ interface TabIconProps {
   routeName: keyof RootTabParamList;
 }
 
+const iconMap: Record<keyof RootTabParamList, IconName> = {
+  Home: 'House',
+  Search: 'MagnifyingGlass',
+  Record: 'Plus',
+  Shelf: 'Books',
+  Settings: 'Gear',
+};
+
+const labelMap: Record<keyof RootTabParamList, string> = {
+  Home: 'ホーム',
+  Search: '探索',
+  Record: '記録',
+  Shelf: '棚',
+  Settings: '設定',
+};
+
 const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
-  const icons: Record<keyof RootTabParamList, string> = {
-    Home: '🏠',
-    Search: '🔍',
-    Record: '➕',
-    Shelf: '📚',
-    Settings: '⚙️',
-  };
-
-  const labels: Record<keyof RootTabParamList, string> = {
-    Home: 'ホーム',
-    Search: '探索',
-    Record: '記録',
-    Shelf: '棚',
-    Settings: '設定',
-  };
-
   const isRecord = routeName === 'Record';
+  const iconName = iconMap[routeName];
+  const label = labelMap[routeName];
+
+  // Determine icon color based on state
+  const iconColor = isRecord
+    ? theme.colors.text.inverse
+    : focused
+      ? theme.colors.accent.primary
+      : theme.colors.icon.default;
 
   return (
     <View
@@ -76,24 +86,25 @@ const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
         styles.tabIconContainer,
         isRecord && styles.recordTabContainer,
       ]}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
     >
-      <Text
-        style={[
-          styles.tabIcon,
-          isRecord && styles.recordTabIcon,
-          focused && styles.tabIconActive,
-        ]}
-      >
-        {icons[routeName]}
-      </Text>
-      <Text
-        style={[
-          styles.tabLabel,
-          focused && styles.tabLabelActive,
-        ]}
-      >
-        {labels[routeName]}
-      </Text>
+      <Icon
+        name={iconName}
+        size={isRecord ? 24 : 22}
+        color={iconColor}
+        weight={focused || isRecord ? 'fill' : 'regular'}
+      />
+      {!isRecord && (
+        <Text
+          variant="caption"
+          color={focused ? theme.colors.accent.primary : theme.colors.text.secondary}
+          style={styles.tabLabel}
+        >
+          {label}
+        </Text>
+      )}
     </View>
   );
 };
@@ -165,29 +176,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  tabIcon: {
-    fontSize: 20,
-    opacity: 0.8,
-  },
-  recordTabIcon: {
-    opacity: 1,
-  },
-  tabIconActive: {
-    opacity: 1,
-  },
   tabLabel: {
-    fontSize: theme.textStyles.caption.fontSize,
-    fontWeight: theme.textStyles.caption.fontWeight,
-    lineHeight: theme.textStyles.caption.lineHeight,
-    color: theme.colors.text.secondary,
     marginTop: theme.spacing.xs,
-  },
-  tabLabelActive: {
-    color: theme.colors.accent.primary,
-  },
-  recordTabButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
