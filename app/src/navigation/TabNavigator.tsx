@@ -1,19 +1,18 @@
 /**
  * Tab Navigator
  *
- * Bottom tab navigation with 5 tabs:
- * - Home (Kitchen World)
- * - Shelf (Archive)
- * - Record (Center, emphasized)
- * - Search (Explore)
- * - Settings
+ * Bottom tab navigation with 4 tabs:
+ * - Home (Kitchen World) - S-01
+ * - Search (Explore) - S-05
+ * - Record (Center, emphasized) - S-04
+ * - Shelf (Archive) - S-02
  *
- * Per UX spec (01-screen-flows.md §3):
- * - 3 main tabs: Search, Record, Shelf
- * - Settings accessed via header icon on Home
+ * Per UX spec (01-screen-flows.md §3, §5.1):
+ * - Footer shows: 探索, 記録, 棚
+ * - Settings accessed via header icon on Home (not in footer)
+ * - Navigation from S-02/S-05 back to S-01 via Footer
  *
- * For development, we include all 5 as tabs for easy access.
- * Production version should match the 3-tab spec.
+ * Note: Home tab included for navigation back to S-01 as per transition matrix.
  */
 
 import React from 'react';
@@ -55,9 +54,9 @@ interface TabIconProps {
 const iconMap: Record<keyof RootTabParamList, IconName> = {
   Home: 'House',
   Search: 'MagnifyingGlass',
-  Record: 'Plus',
+  Record: 'ChefHat',
   Shelf: 'Books',
-  Settings: 'Gear',
+  Settings: 'SlidersHorizontal',
 };
 
 const labelMap: Record<keyof RootTabParamList, string> = {
@@ -147,7 +146,13 @@ export const TabNavigator: React.FC = () => {
           component={RecordScreen}
         />
         <Tab.Screen name="Shelf" component={ShelfScreen} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
+        <Tab.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            tabBarButton: () => null, // Hide from tab bar, accessed via header icon
+          }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );

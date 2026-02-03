@@ -115,7 +115,12 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
   }, [blurred, blurAnim]);
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={false}
+      accessibilityElementsHidden={true}
+      importantForAccessibility="no-hide-descendants"
+    >
       {/* Inner container with breathing animation */}
       <Animated.View
         style={[

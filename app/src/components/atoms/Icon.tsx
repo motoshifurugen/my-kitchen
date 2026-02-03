@@ -16,6 +16,8 @@ export type IconName =
   | 'Plus'
   | 'Books'
   | 'Gear'
+  | 'SlidersHorizontal'
+  | 'ChefHat'
   | 'CaretLeft'
   | 'CaretRight'
   | 'X'

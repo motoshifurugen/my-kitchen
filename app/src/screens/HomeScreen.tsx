@@ -164,7 +164,7 @@ export const HomeScreen: React.FC = () => {
       {/* Header with Settings Icon */}
       <SafeAreaView edges={['top']} style={styles.header}>
         <IconButton
-          icon="Gear"
+          icon="SlidersHorizontal"
           onPress={() => {
             // @ts-ignore - navigation type will be set up in TabNavigator
             navigation.navigate('Settings');
