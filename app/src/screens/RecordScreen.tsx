@@ -85,6 +85,7 @@ export const RecordScreen: React.FC = () => {
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [photoSize, setPhotoSize] = useState(0);
 
   useEffect(() => {
     if (route.params?.photoUri !== undefined) {
@@ -184,7 +185,7 @@ export const RecordScreen: React.FC = () => {
   const suggestionVisible = showSuggestions && filteredMenuItems.length > 0;
   const memoButtonLabel = memo.trim().length > 0 ? 'メモ ✓' : 'メモを追加';
   const photoHint = photoUri ? 'タップで撮り直し' : '写真なしでも追加できます';
-  const photoBlockHeight = 132;
+  const resolvedPhotoSize = photoSize || 120;
 
   return (
     <FlowShell
@@ -205,13 +206,23 @@ export const RecordScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <Surface rounded="lg" elevation="sm" padding="lg" style={styles.card}>
-          <View style={styles.photoRow}>
+          <View
+            style={styles.photoRow}
+            onLayout={(event) => {
+              const width = event.nativeEvent.layout.width;
+              const gap = theme.spacing.md;
+              const nextSize = Math.floor((width - gap) / 2);
+              if (nextSize > 0 && nextSize !== photoSize) {
+                setPhotoSize(nextSize);
+              }
+            }}
+          >
             <PressableBase
-              style={[styles.photoCell, { height: photoBlockHeight }]}
+              style={[styles.photoCell, { minHeight: resolvedPhotoSize }]}
               onPress={handleOpenCamera}
               accessibilityLabel="写真を撮る"
             >
-              <View style={styles.photoArea}>
+              <View style={[styles.photoArea, { width: resolvedPhotoSize, height: resolvedPhotoSize }]}>
                 {photoUri ? (
                   <AppImage
                     source={{ uri: photoUri }}
@@ -225,12 +236,9 @@ export const RecordScreen: React.FC = () => {
                   </View>
                 )}
               </View>
-              <Text variant="caption" style={styles.photoHint}>
-                {photoHint}
-              </Text>
             </PressableBase>
 
-            <View style={[styles.libraryCell, { height: photoBlockHeight }]}>
+            <View style={[styles.libraryCell, { minHeight: resolvedPhotoSize }]}>
               <Button
                 label="ライブラリから選ぶ"
                 iconLeft="Image"
@@ -249,6 +257,11 @@ export const RecordScreen: React.FC = () => {
                 />
               )}
             </View>
+          </View>
+          <View style={styles.photoHintRow}>
+            <Text variant="caption" style={styles.photoHint}>
+              {photoHint}
+            </Text>
           </View>
 
           <View style={styles.formSection}>
@@ -460,6 +473,7 @@ const styles = StyleSheet.create({
   },
   photoCell: {
     flex: 1,
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   libraryCell: {
@@ -468,8 +482,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   photoArea: {
-    width: '100%',
-    aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -488,9 +500,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoHint: {
-    textAlign: 'center',
-    marginTop: theme.spacing.xs,
+    textAlign: 'left',
     color: theme.colors.text.tertiary,
+  },
+  photoHintRow: {
+    marginTop: 0,
   },
   formSection: {
     gap: theme.spacing.md,
