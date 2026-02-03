@@ -4,12 +4,13 @@
  * Unified screen for photo + form.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Modal,
+  ScrollView,
   StyleSheet,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -19,18 +20,63 @@ import {
   type RouteProp,
 } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { FlowShell, ModalShell } from '../components/templates';
+import { FlowShell } from '../components/templates';
 import { Button } from '../components/molecules';
-import { AppImage, Divider, PressableBase, Surface, Text } from '../components/atoms';
+import { AppImage, Icon, PressableBase, Surface, Text } from '../components/atoms';
 import { theme } from '../tokens';
 import type { RecordStackParamList } from '../navigation/RecordNavigator';
 import type { RootTabParamList } from '../navigation/TabNavigator';
 import { MENU_CATALOG } from '../data/menuCatalog';
 
+const MENU_GROUPS: { label: string; ids: string[] }[] = [
+  {
+    label: 'ご飯もの',
+    ids: [
+      'menu_curry_rice',
+      'menu_egg_rice',
+      'menu_fried_rice',
+      'menu_gyudon',
+      'menu_natto_rice',
+      'menu_omurice',
+      'menu_oyakodon',
+      'menu_onigiri',
+    ],
+  },
+  {
+    label: '麺',
+    ids: ['menu_ramen', 'menu_soba', 'menu_udon', 'menu_yakisoba'],
+  },
+  {
+    label: '主菜',
+    ids: [
+      'menu_ginger_pork',
+      'menu_hamburger',
+      'menu_karaage',
+      'menu_tonkatsu',
+      'menu_stir_fried_pork',
+    ],
+  },
+  {
+    label: '副菜',
+    ids: [
+      'menu_salad',
+      'menu_potato_salad',
+      'menu_chilled_tofu',
+      'menu_sashimi',
+      'menu_gyoza',
+      'menu_tamagoyaki',
+    ],
+  },
+  {
+    label: '汁もの',
+    ids: ['menu_miso_soup', 'menu_stew'],
+  },
+];
+
 export const RecordScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RecordStackParamList>>();
   const route = useRoute<RouteProp<RecordStackParamList, 'RecordSelect'>>();
-  const { height: windowHeight } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView | null>(null);
 
   const [photoUri, setPhotoUri] = useState<string | null>(route.params?.photoUri ?? null);
   const [dishName, setDishName] = useState('');
@@ -38,6 +84,7 @@ export const RecordScreen: React.FC = () => {
   const [memo, setMemo] = useState('');
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
 
   useEffect(() => {
     if (route.params?.photoUri !== undefined) {
@@ -61,7 +108,10 @@ export const RecordScreen: React.FC = () => {
   const handlePickFromLibrary = useCallback(async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
+      const granted =
+        permission.granted || permission.status === ImagePicker.PermissionStatus.GRANTED;
+      const limited = permission.status === ImagePicker.PermissionStatus.LIMITED;
+      if (!granted && !limited) {
         Alert.alert('写真にアクセスできませんでした。\n\n設定から許可をご確認ください。');
         return;
       }
@@ -84,6 +134,12 @@ export const RecordScreen: React.FC = () => {
 
   const handleClearPhoto = useCallback(() => {
     setPhotoUri(null);
+  }, []);
+
+  const scrollToInput = useCallback(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 120, animated: true });
+    }, 50);
   }, []);
 
   const handleDishNameChange = useCallback((text: string) => {
@@ -112,6 +168,12 @@ export const RecordScreen: React.FC = () => {
     setShowSuggestions(false);
   }, []);
 
+  const handleSelectMenuFromModal = useCallback((label: string, id: string) => {
+    setDishName(label);
+    setSelectedMenuId(id);
+    setShowMenuModal(false);
+  }, []);
+
   const isDishNameValid = dishName.trim().length > 0;
 
   const handleSave = useCallback(() => {
@@ -119,10 +181,10 @@ export const RecordScreen: React.FC = () => {
     navigation.navigate('RecordCelebration');
   }, [isDishNameValid, navigation]);
 
-  const photoAreaHeight = Math.max(120, Math.min(180, Math.round(windowHeight * 0.22)));
   const suggestionVisible = showSuggestions && filteredMenuItems.length > 0;
-
   const memoButtonLabel = memo.trim().length > 0 ? 'メモ ✓' : 'メモを追加';
+  const photoHint = photoUri ? 'タップで撮り直し' : '写真なしでも追加できます';
+  const photoBlockHeight = 132;
 
   return (
     <FlowShell
@@ -133,19 +195,23 @@ export const RecordScreen: React.FC = () => {
         rightAccessibilityLabel: 'やめる',
       }}
       showWorldBackground
-      scrollable
       avoidKeyboard
     >
-      <View style={styles.content}>
+      <ScrollView
+        ref={(ref) => {
+          scrollRef.current = ref;
+        }}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+      >
         <Surface rounded="lg" elevation="sm" padding="lg" style={styles.card}>
           <View style={styles.photoRow}>
             <PressableBase
-              style={styles.photoCell}
+              style={[styles.photoCell, { height: photoBlockHeight }]}
               onPress={handleOpenCamera}
               accessibilityLabel="写真を撮る"
             >
-              <View style={[styles.photoArea, { height: photoAreaHeight }]}
-              >
+              <View style={styles.photoArea}>
                 {photoUri ? (
                   <AppImage
                     source={{ uri: photoUri }}
@@ -154,20 +220,22 @@ export const RecordScreen: React.FC = () => {
                     style={styles.photoPreview}
                   />
                 ) : (
-                  <View style={styles.photoPlaceholder} accessibilityLabel="写真なし" />
+                  <View style={styles.photoPlaceholder} accessibilityLabel="写真なし">
+                    <Icon name="Camera" size={28} color={theme.colors.text.tertiary} />
+                  </View>
                 )}
               </View>
-              <Text variant="caption" style={styles.photoTapHint}>
-                タップで撮り直し
+              <Text variant="caption" style={styles.photoHint}>
+                {photoHint}
               </Text>
             </PressableBase>
 
-            <View style={styles.libraryCell}>
+            <View style={[styles.libraryCell, { height: photoBlockHeight }]}>
               <Button
                 label="ライブラリから選ぶ"
                 iconLeft="Image"
                 variant="secondary"
-                size="md"
+                size="lg"
                 fullWidth
                 onPress={handlePickFromLibrary}
               />
@@ -183,12 +251,6 @@ export const RecordScreen: React.FC = () => {
             </View>
           </View>
 
-          <Text variant="caption" style={styles.photoHint}>
-            写真なしでも追加できます
-          </Text>
-
-          <Divider margin="lg" />
-
           <View style={styles.formSection}>
             <Text variant="caption" style={styles.sectionLabel}>
               料理名 *
@@ -197,8 +259,8 @@ export const RecordScreen: React.FC = () => {
               {selectedMenu?.icon && (
                 <AppImage
                   source={selectedMenu.icon}
-                  width={32}
-                  height={32}
+                  width={28}
+                  height={28}
                   rounded="md"
                   accessibilityLabel={selectedMenu.label}
                 />
@@ -212,6 +274,10 @@ export const RecordScreen: React.FC = () => {
                 accessibilityLabel="料理名"
                 accessibilityHint="必須項目です"
                 accessibilityRequired
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  scrollToInput();
+                }}
               />
             </Surface>
 
@@ -230,8 +296,8 @@ export const RecordScreen: React.FC = () => {
                   >
                     <AppImage
                       source={item.icon}
-                      width={32}
-                      height={32}
+                      width={28}
+                      height={28}
                       rounded="md"
                       accessibilityLabel={item.label}
                     />
@@ -246,7 +312,7 @@ export const RecordScreen: React.FC = () => {
             <View style={styles.splitRow}>
               <PressableBase
                 style={styles.splitButton}
-                onPress={() => setShowSuggestions((prev) => !prev)}
+                onPress={() => setShowMenuModal(true)}
                 accessibilityLabel="候補から選ぶ"
               >
                 <AppImage
@@ -282,31 +348,97 @@ export const RecordScreen: React.FC = () => {
             />
           </View>
         </Surface>
-      </View>
+      </ScrollView>
 
-      <ModalShell
+      <Modal
         visible={showMemoModal}
-        onClose={() => setShowMemoModal(false)}
-        header={{ title: 'メモ' }}
-        animationType="slide"
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMemoModal(false)}
       >
-        <View style={styles.memoModalContent}>
-          <TextInput
-            value={memo}
-            onChangeText={setMemo}
-            placeholder="メモを書く"
-            placeholderTextColor={theme.colors.text.tertiary}
-            multiline
-            style={styles.memoInput}
-          />
-          <Button
-            label="OK"
-            variant="primary"
-            fullWidth
-            onPress={() => setShowMemoModal(false)}
-          />
+        <View style={styles.modalBackdrop}>
+          <Surface rounded="lg" elevation="lg" padding="lg" style={styles.memoModalCard}>
+            <View style={styles.modalHeader}>
+              <Text variant="subheading">メモ</Text>
+              <PressableBase
+                style={styles.modalAction}
+                onPress={() => setShowMemoModal(false)}
+                accessibilityLabel="保存"
+              >
+                <Text variant="caption" style={styles.modalActionLabel}>
+                  保存
+                </Text>
+              </PressableBase>
+            </View>
+            <TextInput
+              value={memo}
+              onChangeText={setMemo}
+              placeholder="メモを書く"
+              placeholderTextColor={theme.colors.text.tertiary}
+              multiline
+              style={styles.memoInput}
+            />
+          </Surface>
         </View>
-      </ModalShell>
+      </Modal>
+
+      <Modal
+        visible={showMenuModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMenuModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Surface rounded="lg" elevation="lg" padding="lg" style={styles.menuModalCard}>
+            <View style={styles.menuModalHeader}>
+              <Text variant="subheading">候補から選ぶ</Text>
+              <PressableBase
+                style={styles.modalAction}
+                onPress={() => setShowMenuModal(false)}
+                accessibilityLabel="閉じる"
+              >
+                <Text variant="caption" style={styles.modalActionLabel}>
+                  閉じる
+                </Text>
+              </PressableBase>
+            </View>
+            <ScrollView contentContainerStyle={styles.menuModalContent}>
+              {MENU_GROUPS.map((group) => {
+                const items = MENU_CATALOG.filter((item) => group.ids.includes(item.id));
+                if (items.length === 0) return null;
+                return (
+                  <View key={group.label} style={styles.menuGroup}>
+                    <Text variant="caption" style={styles.menuGroupLabel}>
+                      {group.label}
+                    </Text>
+                    <View style={styles.menuGrid}>
+                      {items.map((item) => (
+                        <PressableBase
+                          key={item.id}
+                          style={styles.menuGridItem}
+                          onPress={() => handleSelectMenuFromModal(item.label, item.id)}
+                          accessibilityLabel={item.label}
+                        >
+                          <AppImage
+                            source={item.icon}
+                            width={40}
+                            height={40}
+                            rounded="md"
+                            accessibilityLabel={item.label}
+                          />
+                          <Text variant="caption" style={styles.menuGridLabel}>
+                            {item.label}
+                          </Text>
+                        </PressableBase>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </Surface>
+        </View>
+      </Modal>
     </FlowShell>
   );
 };
@@ -314,29 +446,32 @@ export const RecordScreen: React.FC = () => {
 RecordScreen.displayName = 'RecordScreen';
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
+  scrollContent: {
     paddingHorizontal: theme.spacing.screen.horizontal,
     paddingBottom: theme.spacing.xl,
   },
   card: {
-    gap: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   photoRow: {
     flexDirection: 'row',
     gap: theme.spacing.md,
-    alignItems: 'stretch',
+    alignItems: 'flex-start',
   },
   photoCell: {
     flex: 1,
+    justifyContent: 'space-between',
   },
   libraryCell: {
     flex: 1,
     gap: theme.spacing.sm,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   photoArea: {
     width: '100%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoPreview: {
     width: '100%',
@@ -349,18 +484,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.elevated,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  photoTapHint: {
+  photoHint: {
     textAlign: 'center',
     marginTop: theme.spacing.xs,
     color: theme.colors.text.tertiary,
   },
-  photoHint: {
-    textAlign: 'center',
-    color: theme.colors.text.tertiary,
-  },
   formSection: {
-    gap: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   sectionLabel: {
     color: theme.colors.text.secondary,
@@ -419,18 +552,77 @@ const styles = StyleSheet.create({
   splitLabel: {
     color: theme.colors.text.secondary,
   },
-  memoModalContent: {
+  modalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: theme.spacing.lg,
+  },
+  memoModalCard: {
+    width: '100%',
+    maxWidth: 420,
     gap: theme.spacing.md,
   },
+  menuModalCard: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '80%',
+    gap: theme.spacing.md,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalAction: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  modalActionLabel: {
+    color: theme.colors.text.secondary,
+  },
   memoInput: {
-    flex: 1,
+    minHeight: 120,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     color: theme.colors.text.primary,
     textAlignVertical: 'top',
+  },
+  menuModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  menuModalContent: {
+    gap: theme.spacing.lg,
+  },
+  menuGroup: {
+    gap: theme.spacing.sm,
+  },
+  menuGroupLabel: {
+    color: theme.colors.text.secondary,
+  },
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  menuGridItem: {
+    width: '30%',
+    minWidth: 90,
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    backgroundColor: theme.colors.surface.elevated,
+  },
+  menuGridLabel: {
+    textAlign: 'center',
+    color: theme.colors.text.secondary,
   },
 });
