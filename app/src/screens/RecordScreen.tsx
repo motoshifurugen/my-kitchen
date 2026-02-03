@@ -21,11 +21,11 @@ export const RecordScreen: React.FC = () => {
 
   const navigateToHome = useCallback(() => {
     const parentNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
-    if (!parentNavigation) {
-      throw new Error('Root tab navigation not found for record flow.');
+    if (parentNavigation) {
+      parentNavigation.navigate('Home');
+      return;
     }
-    navigation.popToTop();
-    parentNavigation.navigate('Home');
+    navigation.navigate('RecordSelect');
   }, [navigation]);
 
   const handleOpenCamera = useCallback(() => {
