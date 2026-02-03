@@ -69,11 +69,11 @@ export const CHARACTER = {
  */
 export const CHAR_FOOT_Y: Record<AgeGroup, number> = {
   /** Age10 - feet sit higher in the image (character appears smaller) */
-  young: 1200,
+  young: 1370,
   /** Age20 - standard foot position */
-  adult: 1350,
+  adult: 1500,
   /** Age40 - same as adult */
-  mature: 1350,
+  mature: 1500,
 } as const;
 
 // ============================================================================
@@ -89,9 +89,9 @@ export const CHAR_FOOT_Y: Record<AgeGroup, number> = {
  * Range: typically 0.95 - 1.05
  */
 export const CHAR_SCALE_MULT: Record<AgeGroup, number> = {
-  young: 1.0,
-  adult: 1.0,
-  mature: 1.0,
+  young: 0.84,
+  adult: 0.75,
+  mature: 0.75,
 } as const;
 
 // ============================================================================
