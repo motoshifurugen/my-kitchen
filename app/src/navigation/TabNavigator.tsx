@@ -23,10 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HomeScreen,
   ShelfScreen,
-  RecordScreen,
   SearchScreen,
   SettingsScreen,
 } from '../screens';
+import { RecordNavigator } from './RecordNavigator';
 import { Icon, IconName, Text } from '../components/atoms';
 import { theme, footer as footerTokens } from '../tokens';
 
@@ -143,7 +143,7 @@ export const TabNavigator: React.FC = () => {
         <Tab.Screen name="Search" component={SearchScreen} />
         <Tab.Screen
           name="Record"
-          component={RecordScreen}
+          component={RecordNavigator}
           options={{
             tabBarStyle: { display: 'none' },
           }}

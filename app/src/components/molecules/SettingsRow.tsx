@@ -67,6 +67,9 @@ export const SettingsRow: React.FC<SettingsRowProps> = (props) => {
           value={value}
           onValueChange={onValueChange}
           disabled={disabled}
+          accessibilityLabel={label}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: value, disabled }}
           trackColor={{
             false: colors.border.default,
             true: colors.accent.primary,

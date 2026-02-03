@@ -14,7 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.app"
+      "bundleIdentifier": "com.anonymous.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "写真を撮るためにカメラを使用します",
+        "NSPhotoLibraryUsageDescription": "写真を選ぶためにフォトライブラリを使用します",
+        "NSPhotoLibraryAddUsageDescription": "写真を保存するためにフォトライブラリを使用します"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +28,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.app"
+      "package": "com.anonymous.app",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

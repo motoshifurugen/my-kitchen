@@ -8,10 +8,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Text, Spacer, Divider } from '../components/atoms';
+import { Text, Spacer } from '../components/atoms';
 import { Chip, Button, SettingsRow } from '../components/molecules';
 import { HeaderBar } from '../components/organisms';
-import { AppShell } from '../components/templates';
+import { AppShell, ModalShell } from '../components/templates';
 import { theme } from '../tokens';
 import {
   useWorldSignals,
@@ -183,6 +183,9 @@ export const SettingsScreen: React.FC = () => {
   const [ambientSound, setAmbientSound] = useState(true);
   const [recordSound, setRecordSound] = useState(true);
   const [showDebug, setShowDebug] = useState(__DEV__);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showKitchenSignals, setShowKitchenSignals] = useState(false);
+  const [showDataInfo, setShowDataInfo] = useState(false);
 
   return (
     <AppShell showWorldBackground>
@@ -206,7 +209,7 @@ export const SettingsScreen: React.FC = () => {
           <SettingsRow
             variant="chevron"
             label="通知設定"
-            onPress={() => {}}
+            onPress={() => setShowNotifications(true)}
           />
         </View>
 
@@ -245,12 +248,12 @@ export const SettingsScreen: React.FC = () => {
           <SettingsRow
             variant="chevron"
             label="Kitchen Signals"
-            onPress={() => {}}
+            onPress={() => setShowKitchenSignals(true)}
           />
           <SettingsRow
             variant="chevron"
             label="データについて"
-            onPress={() => {}}
+            onPress={() => setShowDataInfo(true)}
           />
         </View>
 
@@ -274,7 +277,7 @@ export const SettingsScreen: React.FC = () => {
         {/* Privacy Note */}
         <View style={styles.privacyNote}>
           <Text variant="caption" color={theme.colors.text.secondary}>
-            ℹ️ データは端末内に保存されています
+            データは端末内に保存されています
           </Text>
         </View>
 
@@ -291,6 +294,36 @@ export const SettingsScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Sub Screens */}
+      <ModalShell
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        header={{ title: '通知設定' }}
+        animationType="slide"
+      >
+        <View style={styles.modalContent} />
+      </ModalShell>
+
+      <ModalShell
+        visible={showKitchenSignals}
+        onClose={() => setShowKitchenSignals(false)}
+        header={{ title: 'Kitchen Signals' }}
+        animationType="slide"
+      >
+        <View style={styles.modalContent} />
+      </ModalShell>
+
+      <ModalShell
+        visible={showDataInfo}
+        onClose={() => setShowDataInfo(false)}
+        header={{ title: 'データについて' }}
+        animationType="slide"
+      >
+        <View style={styles.modalContent}>
+          <Text variant="body">データは端末内に保存されています</Text>
+        </View>
+      </ModalShell>
     </AppShell>
   );
 };
@@ -314,6 +347,10 @@ const styles = StyleSheet.create({
   privacyNote: {
     padding: theme.spacing.lg,
     alignItems: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    padding: theme.spacing.lg,
   },
 
   // Debug Panel Styles
