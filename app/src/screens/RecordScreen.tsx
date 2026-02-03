@@ -5,12 +5,23 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useNavigation, useRoute, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import {
+  Alert,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import {
+  useNavigation,
+  useRoute,
+  type NavigationProp,
+  type RouteProp,
+} from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { FlowShell } from '../components/templates';
-import { Button, TextArea, TextField } from '../components/molecules';
-import { AppImage, PressableBase, Surface, Text, Divider } from '../components/atoms';
+import { FlowShell, ModalShell } from '../components/templates';
+import { Button } from '../components/molecules';
+import { AppImage, Divider, PressableBase, Surface, Text } from '../components/atoms';
 import { theme } from '../tokens';
 import type { RecordStackParamList } from '../navigation/RecordNavigator';
 import type { RootTabParamList } from '../navigation/TabNavigator';
@@ -25,7 +36,8 @@ export const RecordScreen: React.FC = () => {
   const [dishName, setDishName] = useState('');
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
   const [memo, setMemo] = useState('');
-  const [showMemo, setShowMemo] = useState(false);
+  const [showMemoModal, setShowMemoModal] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     if (route.params?.photoUri !== undefined) {
@@ -74,7 +86,11 @@ export const RecordScreen: React.FC = () => {
     setPhotoUri(null);
   }, []);
 
-  const isDishNameValid = dishName.trim().length > 0;
+  const handleDishNameChange = useCallback((text: string) => {
+    setDishName(text);
+    setSelectedMenuId(null);
+    setShowSuggestions(true);
+  }, []);
 
   const filteredMenuItems = useMemo(() => {
     const query = dishName.trim();
@@ -85,22 +101,28 @@ export const RecordScreen: React.FC = () => {
     ).slice(0, 6);
   }, [dishName]);
 
+  const selectedMenu = useMemo(
+    () => MENU_CATALOG.find((item) => item.id === selectedMenuId),
+    [selectedMenuId]
+  );
+
   const handleSelectMenu = useCallback((label: string, id: string) => {
     setDishName(label);
     setSelectedMenuId(id);
+    setShowSuggestions(false);
   }, []);
 
-  const handleDishNameChange = useCallback((text: string) => {
-    setDishName(text);
-    setSelectedMenuId(null);
-  }, []);
+  const isDishNameValid = dishName.trim().length > 0;
 
   const handleSave = useCallback(() => {
     if (!isDishNameValid) return;
     navigation.navigate('RecordCelebration');
   }, [isDishNameValid, navigation]);
 
-  const photoAreaHeight = Math.max(200, Math.min(320, Math.round(windowHeight * 0.33)));
+  const photoAreaHeight = Math.max(120, Math.min(180, Math.round(windowHeight * 0.22)));
+  const suggestionVisible = showSuggestions && filteredMenuItems.length > 0;
+
+  const memoButtonLabel = memo.trim().length > 0 ? 'メモ ✓' : 'メモを追加';
 
   return (
     <FlowShell
@@ -116,119 +138,138 @@ export const RecordScreen: React.FC = () => {
     >
       <View style={styles.content}>
         <Surface rounded="lg" elevation="sm" padding="lg" style={styles.card}>
-          <View style={[styles.photoArea, { height: photoAreaHeight }]}>
-            {photoUri ? (
-              <AppImage
-                source={{ uri: photoUri }}
-                rounded="lg"
-                accessibilityLabel="選択した写真"
-                style={styles.photoPreview}
+          <View style={styles.photoRow}>
+            <PressableBase
+              style={styles.photoCell}
+              onPress={handleOpenCamera}
+              accessibilityLabel="写真を撮る"
+            >
+              <View style={[styles.photoArea, { height: photoAreaHeight }]}
+              >
+                {photoUri ? (
+                  <AppImage
+                    source={{ uri: photoUri }}
+                    rounded="lg"
+                    accessibilityLabel="選択した写真"
+                    style={styles.photoPreview}
+                  />
+                ) : (
+                  <View style={styles.photoPlaceholder} accessibilityLabel="写真なし" />
+                )}
+              </View>
+              <Text variant="caption" style={styles.photoTapHint}>
+                タップで撮り直し
+              </Text>
+            </PressableBase>
+
+            <View style={styles.libraryCell}>
+              <Button
+                label="ライブラリから選ぶ"
+                iconLeft="Image"
+                variant="secondary"
+                size="md"
+                fullWidth
+                onPress={handlePickFromLibrary}
               />
-            ) : (
-              <View style={styles.photoPlaceholder} accessibilityLabel="写真なし" />
-            )}
+              {photoUri && (
+                <Button
+                  label="写真を削除"
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
+                  onPress={handleClearPhoto}
+                />
+              )}
+            </View>
           </View>
 
-          <View style={styles.photoActions}>
-            <Button
-              label="写真を撮る"
-              iconLeft="Camera"
-              variant="primary"
-              size="md"
-              fullWidth
-              onPress={handleOpenCamera}
-            />
-            <Button
-              label="ライブラリから選ぶ"
-              iconLeft="Image"
-              variant="secondary"
-              size="md"
-              fullWidth
-              onPress={handlePickFromLibrary}
-            />
-            {photoUri && (
-              <Button
-                label="写真を削除"
-                variant="ghost"
-                size="sm"
-                fullWidth
-                onPress={handleClearPhoto}
-              />
-            )}
-            <Text variant="caption" style={styles.photoHint}>
-              写真なしでも追加できます
-            </Text>
-          </View>
+          <Text variant="caption" style={styles.photoHint}>
+            写真なしでも追加できます
+          </Text>
 
           <Divider margin="lg" />
 
           <View style={styles.formSection}>
-            <TextField
-              label="料理名 *"
-              value={dishName}
-              onChangeText={handleDishNameChange}
-              placeholder="（空欄）"
-              accessibilityLabel="料理名"
-              accessibilityHint="必須項目です"
-              accessibilityRequired
-            />
-
-            <View style={styles.suggestionHeader}>
-              <Text variant="caption" style={styles.sectionLabel}>
-                候補から選ぶ（任意）
-              </Text>
-              {selectedMenuId ? (
-                <Text variant="caption" style={styles.selectedHint}>
-                  選択中
-                </Text>
-              ) : null}
-            </View>
-            <View style={styles.suggestionList}>
-              {filteredMenuItems.map((item) => (
-                <PressableBase
-                  key={item.id}
-                  style={({ pressed }) => [
-                    styles.suggestionItem,
-                    pressed && styles.suggestionPressed,
-                    selectedMenuId === item.id && styles.suggestionSelected,
-                  ]}
-                  onPress={() => handleSelectMenu(item.label, item.id)}
-                  accessibilityLabel={item.label}
-                >
-                  <AppImage
-                    source={item.icon}
-                    width={36}
-                    height={36}
-                    rounded="md"
-                    accessibilityLabel={item.label}
-                  />
-                  <Text variant="body" style={styles.suggestionLabel}>
-                    {item.label}
-                  </Text>
-                </PressableBase>
-              ))}
-            </View>
-            <Text variant="caption" style={styles.freeTextHint}>
-              候補にない場合は、そのまま追加できます
+            <Text variant="caption" style={styles.sectionLabel}>
+              料理名 *
             </Text>
-
-            <View style={styles.memoSection}>
-              {!showMemo ? (
-                <Button
-                  label="メモを追加"
-                  variant="ghost"
-                  size="sm"
-                  onPress={() => setShowMemo(true)}
-                  fullWidth
-                />
-              ) : (
-                <TextArea
-                  label="メモ（任意）"
-                  value={memo}
-                  onChangeText={setMemo}
-                  numberOfLines={4}
+            <Surface rounded="md" padding="sm" style={styles.inputSurface}>
+              {selectedMenu?.icon && (
+                <AppImage
+                  source={selectedMenu.icon}
+                  width={32}
+                  height={32}
+                  rounded="md"
+                  accessibilityLabel={selectedMenu.label}
                 />
               )}
+              <TextInput
+                value={dishName}
+                onChangeText={handleDishNameChange}
+                placeholder="（空欄）"
+                placeholderTextColor={theme.colors.text.tertiary}
+                style={styles.textInput}
+                accessibilityLabel="料理名"
+                accessibilityHint="必須項目です"
+                accessibilityRequired
+              />
+            </Surface>
+
+            {suggestionVisible && (
+              <View style={styles.suggestionList}>
+                {filteredMenuItems.map((item) => (
+                  <PressableBase
+                    key={item.id}
+                    style={({ pressed }) => [
+                      styles.suggestionItem,
+                      pressed && styles.suggestionPressed,
+                      selectedMenuId === item.id && styles.suggestionSelected,
+                    ]}
+                    onPress={() => handleSelectMenu(item.label, item.id)}
+                    accessibilityLabel={item.label}
+                  >
+                    <AppImage
+                      source={item.icon}
+                      width={32}
+                      height={32}
+                      rounded="md"
+                      accessibilityLabel={item.label}
+                    />
+                    <Text variant="body" style={styles.suggestionLabel}>
+                      {item.label}
+                    </Text>
+                  </PressableBase>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.splitRow}>
+              <PressableBase
+                style={styles.splitButton}
+                onPress={() => setShowSuggestions((prev) => !prev)}
+                accessibilityLabel="候補から選ぶ"
+              >
+                <AppImage
+                  source={MENU_CATALOG[0].icon}
+                  width={28}
+                  height={28}
+                  rounded="md"
+                  accessibilityLabel="候補の例"
+                />
+                <Text variant="caption" style={styles.splitLabel}>
+                  候補から選ぶ
+                </Text>
+              </PressableBase>
+
+              <PressableBase
+                style={styles.splitButton}
+                onPress={() => setShowMemoModal(true)}
+                accessibilityLabel={memoButtonLabel}
+              >
+                <Text variant="caption" style={styles.splitLabel}>
+                  {memoButtonLabel}
+                </Text>
+              </PressableBase>
             </View>
 
             <Button
@@ -242,6 +283,30 @@ export const RecordScreen: React.FC = () => {
           </View>
         </Surface>
       </View>
+
+      <ModalShell
+        visible={showMemoModal}
+        onClose={() => setShowMemoModal(false)}
+        header={{ title: 'メモ' }}
+        animationType="slide"
+      >
+        <View style={styles.memoModalContent}>
+          <TextInput
+            value={memo}
+            onChangeText={setMemo}
+            placeholder="メモを書く"
+            placeholderTextColor={theme.colors.text.tertiary}
+            multiline
+            style={styles.memoInput}
+          />
+          <Button
+            label="OK"
+            variant="primary"
+            fullWidth
+            onPress={() => setShowMemoModal(false)}
+          />
+        </View>
+      </ModalShell>
     </FlowShell>
   );
 };
@@ -256,6 +321,19 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: theme.spacing.lg,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    alignItems: 'stretch',
+  },
+  photoCell: {
+    flex: 1,
+  },
+  libraryCell: {
+    flex: 1,
+    gap: theme.spacing.sm,
+    justifyContent: 'center',
   },
   photoArea: {
     width: '100%',
@@ -272,8 +350,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border.default,
   },
-  photoActions: {
-    gap: theme.spacing.sm,
+  photoTapHint: {
+    textAlign: 'center',
+    marginTop: theme.spacing.xs,
+    color: theme.colors.text.tertiary,
   },
   photoHint: {
     textAlign: 'center',
@@ -282,16 +362,22 @@ const styles = StyleSheet.create({
   formSection: {
     gap: theme.spacing.lg,
   },
-  suggestionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   sectionLabel: {
     color: theme.colors.text.secondary,
   },
-  selectedHint: {
-    color: theme.colors.text.tertiary,
+  inputSurface: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface.elevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+  },
+  textInput: {
+    flex: 1,
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.size.md,
+    paddingVertical: theme.spacing.xs,
   },
   suggestionList: {
     gap: theme.spacing.sm,
@@ -315,10 +401,36 @@ const styles = StyleSheet.create({
   suggestionLabel: {
     flex: 1,
   },
-  freeTextHint: {
-    color: theme.colors.text.tertiary,
+  splitRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
   },
-  memoSection: {
-    gap: theme.spacing.sm,
+  splitButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    backgroundColor: theme.colors.surface.elevated,
+    gap: theme.spacing.xs,
+  },
+  splitLabel: {
+    color: theme.colors.text.secondary,
+  },
+  memoModalContent: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  memoInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    color: theme.colors.text.primary,
+    textAlignVertical: 'top',
   },
 });
