@@ -40,7 +40,7 @@ export const RecordCameraScreen: React.FC = () => {
       if (!photo?.uri) {
         throw new Error('Camera did not return a photo URI.');
       }
-      navigation.navigate('RecordForm', { photoUri: photo.uri });
+      navigation.navigate('RecordSelect', { photoUri: photo.uri });
     } finally {
       setIsCapturing(false);
     }
