@@ -1,0 +1,3 @@
+workflow: default
+permissionMode: default
+provider: codex

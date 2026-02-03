@@ -144,6 +144,9 @@ export const TabNavigator: React.FC = () => {
         <Tab.Screen
           name="Record"
           component={RecordScreen}
+          options={{
+            tabBarStyle: { display: 'none' },
+          }}
         />
         <Tab.Screen name="Shelf" component={ShelfScreen} />
         <Tab.Screen

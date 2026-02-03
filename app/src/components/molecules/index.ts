@@ -11,3 +11,5 @@ export { TextArea, type TextAreaProps } from './TextArea';
 export { Chip, type ChipProps } from './Chip';
 export { SettingsRow, type SettingsRowProps } from './SettingsRow';
 export { SearchField, type SearchFieldProps } from './SearchField';
+export { DishCardItem, type DishCardItemProps, getCardDimensions } from './DishCardItem';
+export { DishCardSkeleton, type DishCardSkeletonProps } from './DishCardSkeleton';
