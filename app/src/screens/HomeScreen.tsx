@@ -32,11 +32,15 @@ import {
 interface DevLayerControlsProps {
   showCharacter: boolean;
   setShowCharacter: (value: boolean) => void;
+  showGuides: boolean;
+  setShowGuides: (value: boolean) => void;
 }
 
 const DevLayerControls: React.FC<DevLayerControlsProps> = ({
   showCharacter,
   setShowCharacter,
+  showGuides,
+  setShowGuides,
 }) => {
   const { timeOfDay, setTimeOfDay, ageGroup, setAgeGroup } = useWorldSignals();
 
@@ -74,6 +78,22 @@ const DevLayerControls: React.FC<DevLayerControlsProps> = ({
         />
       </View>
 
+      {/* Calibration Guides Toggle */}
+      <View style={devStyles.toggleRow}>
+        <Text variant="caption" color="#fff">
+          Calibration Guides{' '}
+          <Text variant="caption" color="rgba(255,0,0,0.8)">Floor</Text>
+          {' / '}
+          <Text variant="caption" color="rgba(0,255,0,0.8)">Foot</Text>
+        </Text>
+        <Switch
+          value={showGuides}
+          onValueChange={setShowGuides}
+          trackColor={{ false: '#555', true: theme.colors.accent.primary }}
+          thumbColor="#fff"
+        />
+      </View>
+
       {/* Time Selector */}
       <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
         Kitchen Time (base render)
@@ -95,7 +115,7 @@ const DevLayerControls: React.FC<DevLayerControlsProps> = ({
 
       {/* Character Selector */}
       <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
-        Character Age
+        Character Age (switch to verify foot alignment)
       </Text>
       <View style={devStyles.row}>
         {ageGroups.map((age) => (
@@ -155,11 +175,17 @@ export const HomeScreen: React.FC = () => {
 
   // Dev toggle for character layer
   const [showCharacter, setShowCharacter] = useState(true);
+  // Dev toggle for calibration guides
+  const [showGuides, setShowGuides] = useState(false);
 
   return (
     <View style={styles.container}>
       {/* Kitchen World */}
-      <WorldScene showCharacter={showCharacter} />
+      <WorldScene
+        showCharacter={showCharacter}
+        showFloorGuide={__DEV__ && showGuides}
+        showFootGuide={__DEV__ && showGuides}
+      />
 
       {/* Header with Settings Icon */}
       <SafeAreaView edges={['top']} style={styles.header}>
@@ -178,6 +204,8 @@ export const HomeScreen: React.FC = () => {
         <DevLayerControls
           showCharacter={showCharacter}
           setShowCharacter={setShowCharacter}
+          showGuides={showGuides}
+          setShowGuides={setShowGuides}
         />
       )}
     </View>

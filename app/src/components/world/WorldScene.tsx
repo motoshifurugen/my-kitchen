@@ -15,11 +15,11 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, Animated } from 'react-native';
 import { WorldLayer } from './WorldLayer';
+import { CharacterLayer } from './CharacterLayer';
 import { useWorldSignals } from '../../state/worldSignals';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   getKitchenTimeAsset,
-  getCharacterAsset,
   getRoomMaskAsset,
 } from '../../assets/manifest';
 import { colors, duration, easing, scale } from '../../tokens';
@@ -45,6 +45,14 @@ export interface WorldSceneProps {
    * DEV: Show character layer (set to false to isolate rendering issues)
    */
   showCharacter?: boolean;
+  /**
+   * DEV: Show floor guide line for character calibration
+   */
+  showFloorGuide?: boolean;
+  /**
+   * DEV: Show foot guide line for character calibration
+   */
+  showFootGuide?: boolean;
 }
 
 // ============================================================================
@@ -66,6 +74,8 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
   devMode = __DEV__,
   showMask = false,
   showCharacter = true,
+  showFloorGuide = false,
+  showFootGuide = false,
 }) => {
   const { timeOfDay, ageGroup } = useWorldSignals();
 
@@ -142,13 +152,13 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
         {/* NOTE: Time overlay layer REMOVED (was causing double-room artifact) */}
         {/* The kitchenTime assets are full renders, not transparent overlays */}
 
-        {/* Layer 2: Character (static in MVP) */}
-        <WorldLayer
-          source={getCharacterAsset(ageGroup)}
+        {/* Layer 2: Character with per-age foot anchor positioning */}
+        <CharacterLayer
+          ageGroup={ageGroup}
           zIndex={2}
-          testID="world-character"
-          devColor={devMode ? DEV_COLORS.character : undefined}
           visible={showCharacter}
+          showFloorGuide={showFloorGuide}
+          showFootGuide={showFootGuide}
         />
 
         {/* Layer 3: Mask (wired for future, not shown by default) */}
