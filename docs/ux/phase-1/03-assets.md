@@ -103,7 +103,7 @@ React Native での安定性を優先し、**すべてのレイヤーを Normal 
 
 Time/Season オーバーレイは以下の手順で制作：
 
-1. Photoshop/Figma で Soft Light/Overlay/Multiply 効果を適用
+1. 画像編集ツール（Photoshop等）で Soft Light/Overlay/Multiply 効果を適用
 2. **Base Kitchen 背景と合成した状態でルック確認**
 3. 効果込みの状態で **透過PNG として書き出し**
 4. RN 上では opacity 0.0〜1.0 で表示強度を調整
