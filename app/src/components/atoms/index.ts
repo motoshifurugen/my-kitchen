@@ -12,3 +12,8 @@ export { Surface, type SurfaceProps } from './Surface';
 export { PressableBase, type PressableBaseProps } from './PressableBase';
 export { AppImage, type AppImageProps } from './AppImage';
 export { Icon, type IconProps, type IconName } from './Icon';
+export {
+  LoadingIndicator,
+  type LoadingIndicatorProps,
+  type LoadingIndicatorSize,
+} from './LoadingIndicator';

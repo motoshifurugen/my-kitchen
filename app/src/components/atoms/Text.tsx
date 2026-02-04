@@ -23,6 +23,8 @@ export interface TextProps extends RNTextProps {
   color?: string;
   /** Children text content */
   children: React.ReactNode;
+  /** Allow font scaling (default: true, set to false for logos/branding/decorative text) */
+  allowFontScaling?: boolean;
 }
 
 const variantStyles: Record<TextVariant, TextStyle> = {
@@ -38,13 +40,18 @@ export const Text: React.FC<TextProps> = ({
   color,
   style,
   children,
+  allowFontScaling = true, // Default: allow font scaling for accessibility
   ...rest
 }) => {
   const baseStyle = variantStyles[variant];
   const colorStyle = color ? { color } : undefined;
 
   return (
-    <RNText style={[baseStyle, colorStyle, style]} {...rest}>
+    <RNText
+      style={[baseStyle, colorStyle, style]}
+      allowFontScaling={allowFontScaling}
+      {...rest}
+    >
       {children}
     </RNText>
   );

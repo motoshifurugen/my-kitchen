@@ -5,7 +5,7 @@
  * for consistent styling across the app.
  */
 
-import { Platform, TextStyle, ViewStyle } from 'react-native';
+import { TextStyle, ViewStyle } from 'react-native';
 import {
   colors,
   opacity,
@@ -18,6 +18,7 @@ import {
   footer,
   focus,
 } from './designTokens';
+import { fontFamilies } from './typography';
 import {
   duration,
   easing,
@@ -30,10 +31,12 @@ import {
 // Typography Helpers
 // ============================================================================
 
-const getFontFamily = (): string | undefined => {
-  // iOS: undefined uses system font (SF Pro)
-  // Android: Use Noto Sans JP
-  return Platform.OS === 'android' ? typography.fontFamily.android : undefined;
+const resolveFontFamily = (fontWeight: TextStyle['fontWeight']): string => {
+  const weight =
+    typeof fontWeight === 'string' ? parseInt(fontWeight, 10) : fontWeight ?? 400;
+  if (weight >= 600) return fontFamilies.bold;
+  if (weight >= 500) return fontFamilies.medium;
+  return fontFamilies.regular;
 };
 
 const createTextStyle = (
@@ -42,9 +45,9 @@ const createTextStyle = (
   lineHeight: number,
   color: string = colors.text.primary
 ): TextStyle => ({
-  fontFamily: getFontFamily(),
+  fontFamily: resolveFontFamily(fontWeight),
   fontSize,
-  fontWeight,
+  fontWeight: 'normal',
   lineHeight: fontSize * lineHeight,
   color,
 });
@@ -61,7 +64,7 @@ export const theme = {
   // Typography
   typography: {
     ...typography,
-    fontFamily: getFontFamily(),
+    fontFamily: fontFamilies.regular,
   },
 
   // Text Styles (ready to use)

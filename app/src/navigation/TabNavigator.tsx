@@ -16,18 +16,22 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import {
+  createBottomTabNavigator,
+  BottomTabBarProps,
+} from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HomeScreen,
-  ShelfScreen,
   SearchScreen,
-  SettingsScreen,
 } from '../screens';
 import { RecordNavigator } from './RecordNavigator';
+import { ShelfNavigator } from './ShelfNavigator';
+import { SettingsNavigator } from './SettingsNavigator';
 import { Icon, IconName, Text } from '../components/atoms';
+import { IconButton } from '../components/molecules';
 import { theme, footer as footerTokens } from '../tokens';
 
 // ============================================================================
@@ -69,6 +73,7 @@ const labelMap: Record<keyof RootTabParamList, string> = {
 
 const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
   const isRecord = routeName === 'Record';
+  const isHome = routeName === 'Home';
   const iconName = iconMap[routeName];
   const label = labelMap[routeName];
 
@@ -82,8 +87,7 @@ const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
   return (
     <View
       style={[
-        styles.tabIconContainer,
-        isRecord && styles.recordTabContainer,
+        isRecord ? styles.recordTabContainer : styles.tabIconContainer,
       ]}
       accessibilityRole="tab"
       accessibilityLabel={label}
@@ -91,11 +95,11 @@ const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
     >
       <Icon
         name={iconName}
-        size={isRecord ? 24 : 22}
+        size={isRecord ? 28 : 22}
         color={iconColor}
         weight={focused || isRecord ? 'fill' : 'regular'}
       />
-      {!isRecord && (
+      {!isRecord && !isHome && (
         <Text
           variant="caption"
           color={focused ? theme.colors.accent.primary : theme.colors.text.secondary}
@@ -104,6 +108,110 @@ const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
           {label}
         </Text>
       )}
+    </View>
+  );
+};
+
+// ============================================================================
+// Custom Tab Bar
+// ============================================================================
+
+const CustomTabBar: React.FC<BottomTabBarProps> = ({
+  state,
+  descriptors,
+  navigation,
+}) => {
+  const insets = useSafeAreaInsets();
+
+  // Get Home and Record routes
+  const homeRoute = state.routes.find((route) => route.name === 'Home');
+  const recordRoute = state.routes.find((route) => route.name === 'Record');
+
+  return (
+    <View
+      style={[
+        styles.customTabBar,
+        {
+          backgroundColor: footerTokens.background,
+          borderTopWidth: footerTokens.borderWidth,
+          borderTopColor: footerTokens.borderColor,
+          height: footerTokens.height + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
+      {/* Left half: Home button */}
+      {homeRoute && (() => {
+        const isFocused = state.index === state.routes.findIndex((r) => r.key === homeRoute.key);
+        return (
+          <TouchableOpacity
+            style={styles.halfSection}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={labelMap.Home}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: homeRoute.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(homeRoute.name);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <TabIcon focused={isFocused} routeName="Home" />
+          </TouchableOpacity>
+        );
+      })()}
+
+      {/* Center: Record button (circle only) */}
+      {recordRoute && (() => {
+        const isFocused = state.index === state.routes.findIndex((r) => r.key === recordRoute.key);
+        return (
+          <TouchableOpacity
+            style={styles.recordButtonContainer}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={labelMap.Record}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: recordRoute.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(recordRoute.name);
+              }
+            }}
+            activeOpacity={0.9}
+          >
+            <TabIcon focused={isFocused} routeName="Record" />
+          </TouchableOpacity>
+        );
+      })()}
+
+      {/* Right half: Settings button */}
+      <TouchableOpacity
+        style={styles.halfSection}
+        accessibilityRole="button"
+        accessibilityLabel="設定"
+        onPress={() => {
+          // @ts-ignore - navigation type will be set up in TabNavigator
+          navigation.navigate('Settings');
+        }}
+        activeOpacity={0.7}
+      >
+        <IconButton
+          icon="SlidersHorizontal"
+          onPress={() => {}}
+          accessibilityLabel="設定"
+          iconSize={22}
+        />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -124,19 +232,10 @@ export const TabNavigator: React.FC = () => {
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: footerTokens.background,
-            borderTopWidth: footerTokens.borderWidth,
-            borderTopColor: footerTokens.borderColor,
-            height: footerTokens.height + insets.bottom,
-            paddingBottom: insets.bottom,
+            display: 'none', // Hide default tab bar, use custom one
           },
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              routeName={route.name as keyof RootTabParamList}
-            />
-          ),
         })}
+        tabBar={(props) => <CustomTabBar {...props} />}
         initialRouteName="Home"
       >
         <Tab.Screen name="Home" component={HomeScreen} />
@@ -148,12 +247,12 @@ export const TabNavigator: React.FC = () => {
             tabBarStyle: { display: 'none' },
           }}
         />
-        <Tab.Screen name="Shelf" component={ShelfScreen} />
+        <Tab.Screen name="Shelf" component={ShelfNavigator} />
         <Tab.Screen
           name="Settings"
-          component={SettingsScreen}
+          component={SettingsNavigator}
           options={{
-            tabBarButton: () => null, // Hide from tab bar, accessed via header icon
+            tabBarButton: () => null, // Hide from tab bar, accessed via footer icon
           }}
         />
       </Tab.Navigator>
@@ -174,9 +273,12 @@ const styles = StyleSheet.create({
   recordTabContainer: {
     backgroundColor: theme.colors.accent.primary,
     borderRadius: theme.radius.full,
-    width: theme.size.tap.recommended,
-    height: theme.size.tap.recommended,
-    marginTop: -theme.spacing.md,
+    width: 72,
+    height: 72,
+    marginTop: -theme.spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 0,
     // Shadow (explicit for Fabric compatibility)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -186,5 +288,33 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     marginTop: theme.spacing.xs,
+  },
+  customTabBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.screen.horizontal,
+    paddingTop: theme.spacing.xs,
+    position: 'relative',
+  },
+  halfSection: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordButtonContainer: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -36, // Half of button width (72 / 2)
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

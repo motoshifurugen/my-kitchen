@@ -31,6 +31,10 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   hint?: string;
   /** Disabled state */
   disabled?: boolean;
+  /** Accessibility label (defaults to label prop) */
+  accessibilityLabel?: string;
+  /** Accessibility hint for screen readers */
+  accessibilityHint?: string;
 }
 
 export const TextField: React.FC<TextFieldProps> = ({
@@ -41,6 +45,8 @@ export const TextField: React.FC<TextFieldProps> = ({
   error,
   hint,
   disabled = false,
+  accessibilityLabel,
+  accessibilityHint,
   onFocus,
   onBlur,
   ...rest
@@ -97,6 +103,10 @@ export const TextField: React.FC<TextFieldProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           style={styles.input}
+          allowFontScaling={true}
+          accessibilityLabel={accessibilityLabel || label}
+          accessibilityHint={accessibilityHint}
+          accessibilityState={{ disabled }}
           {...rest}
         />
       </View>

@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { opacity, size } from '../../tokens';
 
-export interface PressableBaseProps extends Omit<PressableProps, 'style' | 'hitSlop'> {
+export interface PressableBaseProps extends Omit<PressableProps, 'style' | 'hitSlop' | 'accessibilityState'> {
   /** Custom style or style function */
   style?: ViewStyle | ViewStyle[] | ((state: { pressed: boolean }) => ViewStyle);
   /** Minimum touch target size (pass true for 44pt, or a number for custom size) */
@@ -27,6 +27,8 @@ export interface PressableBaseProps extends Omit<PressableProps, 'style' | 'hitS
   accessibilityLabel: string;
   /** Accessibility role */
   accessibilityRole?: PressableProps['accessibilityRole'];
+  /** Additional accessibility state (merged with disabled) */
+  accessibilityState?: Omit<NonNullable<PressableProps['accessibilityState']>, 'disabled'>;
   /** Disable the pressable */
   disabled?: boolean;
   /** Children content */
@@ -38,6 +40,7 @@ export const PressableBase: React.FC<PressableBaseProps> = ({
   hitSlop,
   accessibilityLabel,
   accessibilityRole = 'button',
+  accessibilityState,
   disabled = false,
   children,
   ...rest
@@ -84,7 +87,7 @@ export const PressableBase: React.FC<PressableBaseProps> = ({
       hitSlop={computedHitSlop}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={accessibilityRole}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ ...accessibilityState, disabled }}
       disabled={disabled}
       {...rest}
     >

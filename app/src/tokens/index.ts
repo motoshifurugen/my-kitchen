@@ -18,6 +18,8 @@ export {
   focus,
 } from './designTokens';
 
+export { fontFamilies, fontSizes, lineHeights } from './typography';
+
 // Motion Tokens
 export {
   duration,

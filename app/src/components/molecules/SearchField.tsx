@@ -30,6 +30,10 @@ export interface SearchFieldProps {
   autoFocus?: boolean;
   /** Disabled state */
   disabled?: boolean;
+  /** Accessibility label (defaults to "検索") */
+  accessibilityLabel?: string;
+  /** Accessibility hint for screen readers */
+  accessibilityHint?: string;
 }
 
 export const SearchField: React.FC<SearchFieldProps> = ({
@@ -40,6 +44,8 @@ export const SearchField: React.FC<SearchFieldProps> = ({
   onClear,
   autoFocus = false,
   disabled = false,
+  accessibilityLabel = '検索',
+  accessibilityHint,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -80,6 +86,10 @@ export const SearchField: React.FC<SearchFieldProps> = ({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         style={styles.input}
+        allowFontScaling={true}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled }}
       />
       {showClearButton && (
         <PressableBase

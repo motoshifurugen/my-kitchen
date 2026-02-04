@@ -4,13 +4,19 @@
  * Manages the current state of the kitchen world:
  * - Time of day (6 buckets)
  * - Season (4)
- * - Age group (3)
- * - Household type (2)
+ * - Age group (3) - persisted to storage
+ * - Household type (2) - persisted to storage
  *
  * These signals control which overlays and props are displayed.
  */
 
 import { create } from 'zustand';
+import {
+  getAgeGroup,
+  setAgeGroup as saveAgeGroup,
+  getHouseholdType,
+  setHouseholdType as saveHouseholdType,
+} from '../utils/storage';
 
 // ============================================================================
 // Type Definitions
@@ -51,6 +57,9 @@ export interface WorldSignalsState extends WorldSignals {
   timeBlend: number;       // Blend towards next time bucket
   seasonBlend: number;     // Blend towards next season (2-week transition)
 
+  // Hydration state
+  isSignalsHydrated: boolean;
+
   // Actions
   setTimeOfDay: (time: TimeOfDay) => void;
   setSeason: (season: Season) => void;
@@ -59,6 +68,9 @@ export interface WorldSignalsState extends WorldSignals {
   setTimeBlend: (blend: number) => void;
   setSeasonBlend: (blend: number) => void;
   updateFromSystem: () => void;
+
+  // Persistence actions
+  hydrateSignals: () => Promise<void>;
 }
 
 // ============================================================================
@@ -184,13 +196,25 @@ const getInitialState = (): WorldSignals & { timeBlend: number; seasonBlend: num
   };
 };
 
-export const useWorldSignals = create<WorldSignalsState>((set) => ({
+export const useWorldSignals = create<WorldSignalsState>((set, get) => ({
   ...getInitialState(),
+  isSignalsHydrated: false,
 
   setTimeOfDay: (time) => set({ timeOfDay: time }),
   setSeason: (season) => set({ season }),
-  setAgeGroup: (age) => set({ ageGroup: age }),
-  setHouseholdType: (household) => set({ householdType: household }),
+
+  setAgeGroup: (age) => {
+    set({ ageGroup: age });
+    // Persist to storage (fire and forget, silent failure)
+    saveAgeGroup(age).catch(() => {});
+  },
+
+  setHouseholdType: (household) => {
+    set({ householdType: household });
+    // Persist to storage (fire and forget, silent failure)
+    saveHouseholdType(household).catch(() => {});
+  },
+
   setTimeBlend: (blend) => set({ timeBlend: Math.max(0, Math.min(1, blend)) }),
   setSeasonBlend: (blend) => set({ seasonBlend: Math.max(0, Math.min(1, blend)) }),
 
@@ -206,6 +230,23 @@ export const useWorldSignals = create<WorldSignalsState>((set) => ({
       season: getSeasonFromMonth(month),
       timeBlend: calculateTimeBlend(hour, minute),
       seasonBlend: calculateSeasonBlend(month, day),
+    });
+  },
+
+  hydrateSignals: async () => {
+    // Avoid re-hydrating
+    if (get().isSignalsHydrated) return;
+
+    const [storedAgeGroup, storedHouseholdType] = await Promise.all([
+      getAgeGroup(),
+      getHouseholdType(),
+    ]);
+
+    set({
+      // Use stored value if available, otherwise keep default
+      ageGroup: storedAgeGroup ?? 'adult',
+      householdType: storedHouseholdType ?? 'solo',
+      isSignalsHydrated: true,
     });
   },
 }));

@@ -113,6 +113,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           style={styles.input}
+          allowFontScaling={true}
           {...rest}
         />
       </View>

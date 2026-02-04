@@ -11,7 +11,8 @@
 
 import React from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
-import { PressableBase, Text, Icon, IconName } from '../atoms';
+import { PressableBase, Icon, IconName } from '../atoms';
+import { Text } from '../ui';
 import { colors, radius, spacing, opacity } from '../../tokens';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
@@ -36,6 +37,8 @@ export interface ButtonProps {
   fullWidth?: boolean;
   /** Accessibility label (defaults to label) */
   accessibilityLabel?: string;
+  /** Custom style */
+  style?: ViewStyle;
 }
 
 const sizeConfig: Record<ButtonSize, { paddingH: number; paddingV: number; iconSize: number }> = {
@@ -79,6 +82,7 @@ export const Button: React.FC<ButtonProps> = ({
   onPress,
   fullWidth = false,
   accessibilityLabel,
+  style,
 }) => {
   const { paddingH, paddingV, iconSize } = sizeConfig[size];
   const { container: variantContainer, textColor } = variantStyles[variant];
@@ -92,6 +96,7 @@ export const Button: React.FC<ButtonProps> = ({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    ...style,
   };
 
   return (
@@ -107,7 +112,11 @@ export const Button: React.FC<ButtonProps> = ({
           <Icon name={iconLeft} size={iconSize} color={textColor} />
         </View>
       )}
-      <Text variant="button" color={textColor}>
+      <Text
+        size={size}
+        weight="medium"
+        color={textColor}
+      >
         {label}
       </Text>
       {iconRight && (

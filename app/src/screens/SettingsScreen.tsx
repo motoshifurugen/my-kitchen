@@ -5,7 +5,7 @@
  * Includes debug panel for testing world signals.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Text, Spacer } from '../components/atoms';
@@ -13,17 +13,46 @@ import { Chip, Button, SettingsRow } from '../components/molecules';
 import { HeaderBar } from '../components/organisms';
 import { AppShell, ModalShell } from '../components/templates';
 import { theme } from '../tokens';
+import { storage } from '../storage';
 import {
   useWorldSignals,
   AgeGroup,
   HouseholdType,
   TIME_ORDER,
+  TimeOfDay,
   SEASON_ORDER,
 } from '../state/worldSignals';
 
 // ============================================================================
 // Debug Panel
 // ============================================================================
+
+const TIME_LABELS: Record<TimeOfDay, string> = {
+  earlyMorning: '早朝',
+  morning: '朝',
+  day: '昼',
+  evening: '夕',
+  night: '夜',
+  lateNight: '深夜',
+};
+
+const SEASON_LABELS: Record<(typeof SEASON_ORDER)[number], string> = {
+  spring: '春',
+  summer: '夏',
+  autumn: '秋',
+  winter: '冬',
+};
+
+const AGE_LABELS: Record<AgeGroup, string> = {
+  young: '10代',
+  adult: '20代',
+  mature: '40代',
+};
+
+const HOUSEHOLD_LABELS: Record<HouseholdType, string> = {
+  solo: 'ひとり',
+  family: 'ふたり以上',
+};
 
 const DebugPanel: React.FC = () => {
   const {
@@ -182,10 +211,36 @@ export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const [ambientSound, setAmbientSound] = useState(true);
   const [recordSound, setRecordSound] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showDebug, setShowDebug] = useState(__DEV__);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showKitchenSignals, setShowKitchenSignals] = useState(false);
   const [showDataInfo, setShowDataInfo] = useState(false);
+  const {
+    timeOfDay,
+    season,
+    ageGroup,
+    householdType,
+  } = useWorldSignals();
+
+  useEffect(() => {
+    storage.get('notificationsEnabled')
+      .then((value) => {
+        if (value === null) return;
+        setNotificationsEnabled(value);
+      })
+      .catch((error) => {
+        console.error('[settings] notifications load failed', error);
+      });
+  }, []);
+
+  const handleToggleNotifications = (value: boolean) => {
+    setNotificationsEnabled(value);
+    storage.set('notificationsEnabled', value)
+      .catch((error) => {
+        console.error('[settings] notifications save failed', error);
+      });
+  };
 
   return (
     <AppShell showWorldBackground>
@@ -302,7 +357,17 @@ export const SettingsScreen: React.FC = () => {
         header={{ title: '通知設定' }}
         animationType="slide"
       >
-        <View style={styles.modalContent} />
+        <ScrollView contentContainerStyle={styles.modalContent}>
+          <SettingsRow
+            variant="toggle"
+            label="通知を受け取る"
+            value={notificationsEnabled}
+            onValueChange={handleToggleNotifications}
+          />
+          <Text variant="caption" color={theme.colors.text.tertiary} style={styles.modalHint}>
+            料理の時間を、そっとお知らせします。
+          </Text>
+        </ScrollView>
       </ModalShell>
 
       <ModalShell
@@ -311,7 +376,27 @@ export const SettingsScreen: React.FC = () => {
         header={{ title: 'Kitchen Signals' }}
         animationType="slide"
       >
-        <View style={styles.modalContent} />
+        <ScrollView contentContainerStyle={styles.modalContent}>
+          <View style={styles.signalRow}>
+            <Text variant="caption" color={theme.colors.text.tertiary}>時間帯</Text>
+            <Text variant="body">{TIME_LABELS[timeOfDay]}</Text>
+          </View>
+          <View style={styles.signalRow}>
+            <Text variant="caption" color={theme.colors.text.tertiary}>季節</Text>
+            <Text variant="body">{SEASON_LABELS[season]}</Text>
+          </View>
+          <View style={styles.signalRow}>
+            <Text variant="caption" color={theme.colors.text.tertiary}>年代</Text>
+            <Text variant="body">{AGE_LABELS[ageGroup]}</Text>
+          </View>
+          <View style={styles.signalRow}>
+            <Text variant="caption" color={theme.colors.text.tertiary}>世帯</Text>
+            <Text variant="body">{HOUSEHOLD_LABELS[householdType]}</Text>
+          </View>
+          <Text variant="caption" color={theme.colors.text.tertiary} style={styles.modalHint}>
+            生活の気配だけを、静かに映します。
+          </Text>
+        </ScrollView>
       </ModalShell>
 
       <ModalShell
@@ -349,8 +434,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    flex: 1,
+    flexGrow: 1,
     padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  modalHint: {
+    marginTop: theme.spacing.sm,
+  },
+  signalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 
   // Debug Panel Styles

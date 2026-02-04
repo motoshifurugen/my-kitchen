@@ -9,6 +9,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RecordScreen } from '../screens/RecordScreen';
 import { RecordCameraScreen } from '../screens/RecordCameraScreen';
 import { RecordCelebrationScreen } from '../screens/RecordCelebrationScreen';
+import { useIsReducedMotion } from '../hooks/useReducedMotion';
+import {
+  getOverlayTransitionConfig,
+  getFadeTransitionConfig,
+} from './transitions';
 
 export type RecordStackParamList = {
   RecordSelect: { photoUri?: string | null } | undefined;
@@ -19,8 +24,17 @@ export type RecordStackParamList = {
 const Stack = createNativeStackNavigator<RecordStackParamList>();
 
 export const RecordNavigator: React.FC = () => {
+  const reduceMotionEnabled = useIsReducedMotion();
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        ...(reduceMotionEnabled
+          ? getFadeTransitionConfig()
+          : getOverlayTransitionConfig()),
+      }}
+    >
       <Stack.Screen name="RecordSelect" component={RecordScreen} />
       <Stack.Screen name="RecordCamera" component={RecordCameraScreen} />
       <Stack.Screen name="RecordCelebration" component={RecordCelebrationScreen} />

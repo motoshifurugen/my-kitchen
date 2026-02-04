@@ -3,11 +3,19 @@
  *
  * Displays a loading placeholder for dish cards.
  * Uses same dimensions as DishCardItem for seamless transitions.
+ *
+ * @see docs/ux/phase-1/02-design-system.md §スケルトンスクリーン仕様
  */
 
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { colors, radius, shadow, spacing } from '../../tokens';
+import { useIsReducedMotion } from '../../hooks/useReducedMotion';
+
+// Animation spec from design system
+const BREATH_DURATION = 800;
+const OPACITY_MIN = 0.3;
+const OPACITY_MAX = 0.6;
 
 export interface DishCardSkeletonProps {
   /** Card width (calculated from grid) */
@@ -20,26 +28,33 @@ export const DishCardSkeleton: React.FC<DishCardSkeletonProps> = ({
   cardWidth,
   cardHeight,
 }) => {
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+  const isReducedMotion = useIsReducedMotion();
+  const pulseAnim = useRef(new Animated.Value(OPACITY_MIN)).current;
 
   useEffect(() => {
+    if (isReducedMotion) {
+      // Static opacity for reduced motion
+      pulseAnim.setValue((OPACITY_MIN + OPACITY_MAX) / 2);
+      return;
+    }
+
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 0.6,
-          duration: 800,
+          toValue: OPACITY_MAX,
+          duration: BREATH_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.3,
-          duration: 800,
+          toValue: OPACITY_MIN,
+          duration: BREATH_DURATION,
           useNativeDriver: true,
         }),
       ])
     );
     animation.start();
     return () => animation.stop();
-  }, [pulseAnim]);
+  }, [pulseAnim, isReducedMotion]);
 
   const containerStyle: ViewStyle = {
     width: cardWidth,

@@ -30,6 +30,28 @@
       "secondary": { "$value": "#7B9E87", "$description": "補助アクセント（落ち着いた緑）" },
       "subtle": { "$value": "#E8DFD5", "$description": "控えめなアクセント" }
     },
+    "button": {
+      "primary": {
+        "background": { "$value": "#4B3426", "$description": "Primaryボタン背景（焦茶）" },
+        "backgroundPressed": { "$value": "#3F2C20", "$description": "Primaryボタン押下時背景" },
+        "backgroundDisabled": { "$value": "#7A6557", "$description": "Primaryボタン無効時背景" },
+        "text": { "$value": "#F6EFE5", "$description": "Primaryボタンテキスト（淡いベージュ）" }
+      },
+      "secondary": {
+        "background": { "$value": "transparent", "$description": "Secondaryボタン背景（透明）" },
+        "backgroundPressed": { "$value": "rgba(75,52,38,0.10)", "$description": "Secondaryボタン押下時背景" },
+        "border": { "$value": "#4B3426", "$description": "Secondaryボタンボーダー（焦茶）" },
+        "borderDisabled": { "$value": "rgba(75,52,38,0.35)", "$description": "Secondaryボタン無効時ボーダー" },
+        "text": { "$value": "#4B3426", "$description": "Secondaryボタンテキスト（焦茶）" },
+        "textDisabled": { "$value": "rgba(75,52,38,0.35)", "$description": "Secondaryボタン無効時テキスト" }
+      },
+      "tertiary": {
+        "background": { "$value": "transparent", "$description": "Tertiaryボタン背景（透明）" },
+        "backgroundPressed": { "$value": "rgba(75,52,38,0.12)", "$description": "Tertiaryボタン押下時背景" },
+        "text": { "$value": "#4B3426", "$description": "Tertiaryボタンテキスト（焦茶）" },
+        "textDisabled": { "$value": "rgba(75,52,38,0.35)", "$description": "Tertiaryボタン無効時テキスト" }
+      }
+    },
     "semantic": {
       "success": {
         "text": { "$value": "#5A7A63", "$description": "成功メッセージテキスト" },

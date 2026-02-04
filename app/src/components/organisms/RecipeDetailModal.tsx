@@ -8,7 +8,7 @@
  * Close: X button (top-left) or scrim tap
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Modal,
@@ -22,9 +22,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton, Chip } from '../molecules';
 import { Text, AppImage } from '../atoms';
+import { useIsReducedMotion } from '../../hooks/useReducedMotion';
 import { colors, radius, spacing, size, shadow } from '../../tokens';
 import { DishCard } from '../../features/archive/types';
 import { formatCookedAt } from '../../features/archive/utils';
+import { logsRepo } from '../../repositories';
+import type { CookLogRow } from '../../repositories';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -51,6 +54,9 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   onClose,
 }) => {
   const insets = useSafeAreaInsets();
+  const reduceMotionEnabled = useIsReducedMotion();
+  const [logs, setLogs] = useState<CookLogRow[]>([]);
+  const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(null);
 
   // Animation values
   const opacity = useRef(new Animated.Value(0)).current;
@@ -60,26 +66,54 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   useEffect(() => {
     if (visible && card) {
       // Enter animation
-      Animated.parallel([
+      // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
+      const animations = [
         Animated.timing(opacity, {
           toValue: 1,
           duration: ANIMATION_DURATION,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: ANIMATION_DURATION,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
+      ];
+
+      if (!reduceMotionEnabled) {
+        animations.push(
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: ANIMATION_DURATION,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          })
+        );
+      } else {
+        // Reduced Motion時はscaleを即座に1に設定
+        scale.setValue(1);
+      }
+
+      Animated.parallel(animations).start();
     } else {
       // Reset for next open
       opacity.setValue(0);
-      scale.setValue(0.95);
+      scale.setValue(reduceMotionEnabled ? 1 : 0.95);
     }
-  }, [visible, card, opacity, scale]);
+  }, [visible, card, opacity, scale, reduceMotionEnabled]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (visible && card) {
+      logsRepo.listByRecipe(card.id)
+        .then((rows) => {
+          if (!isMounted) return;
+          setLogs(rows);
+        })
+        .catch((error) => {
+          console.error('[recipe] logs load failed', error);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, card]);
 
   // Don't render if not visible or no card
   if (!visible || !card) {
@@ -88,20 +122,28 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
   const handleClose = () => {
     // Exit animation then close
-    Animated.parallel([
+    // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
+    const animations = [
       Animated.timing(opacity, {
         toValue: 0,
         duration: ANIMATION_DURATION,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.timing(scale, {
-        toValue: 0.95,
-        duration: ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    ];
+
+    if (!reduceMotionEnabled) {
+      animations.push(
+        Animated.timing(scale, {
+          toValue: 0.95,
+          duration: ANIMATION_DURATION,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      );
+    }
+
+    Animated.parallel(animations).start(() => {
       onClose();
     });
   };
@@ -132,7 +174,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             styles.modalCard,
             {
               opacity,
-              transform: [{ scale }],
+              transform: reduceMotionEnabled ? [] : [{ scale }],
               maxHeight: MODAL_MAX_HEIGHT - insets.top - insets.bottom,
             },
           ]}
@@ -195,16 +237,103 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
             {/* Metadata: Date & Count */}
             <View style={styles.metaContainer}>
-              <Text variant="caption" color={colors.text.tertiary}>
-                {formatCookedAt(card.cookedAt)}
+              {card.cookCount > 0 ? (
+                <>
+                  <Text variant="caption" color={colors.text.tertiary}>
+                    {formatCookedAt(card.cookedAt)}
+                  </Text>
+                  <Text variant="caption" color={colors.text.tertiary}>
+                    {card.cookCount}回作った
+                  </Text>
+                </>
+              ) : (
+                <Text variant="caption" color={colors.text.tertiary}>
+                  まだ記録はありません
+                </Text>
+              )}
+            </View>
+
+            {/* Logs */}
+            <View style={styles.logsSection}>
+              <Text variant="caption" color={colors.text.secondary} style={styles.logsTitle}>
+                記録
               </Text>
-              <Text variant="caption" color={colors.text.tertiary}>
-                {card.cookCount}回作った
-              </Text>
+              {logs.length === 0 ? (
+                <Text variant="caption" color={colors.text.tertiary}>
+                  ここに記録が並びます。
+                </Text>
+              ) : (
+                logs.map((log) => (
+                  <View key={log.id} style={styles.logRow}>
+                    <Text variant="caption" color={colors.text.tertiary}>
+                      {formatCookedAt(log.cooked_at)}
+                    </Text>
+                    <View style={styles.logContentRow}>
+                      {log.photo_uri ? (
+                        <PressableBase
+                          style={styles.logPhotoButton}
+                          onPress={() => setPhotoPreviewUri(log.photo_uri ?? null)}
+                          accessibilityLabel="写真を拡大"
+                          accessibilityRole="button"
+                        >
+                          <AppImage
+                            source={{ uri: log.photo_uri }}
+                            width={56}
+                            height={56}
+                            rounded="md"
+                            contentFit="cover"
+                            accessibilityLabel={`${card.title}の写真`}
+                          />
+                        </PressableBase>
+                      ) : (
+                        <View style={styles.logPhotoPlaceholder}>
+                          <Text variant="caption" color={colors.text.tertiary}>
+                            写真なし
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.logTextColumn}>
+                        {log.memo ? (
+                          <Text variant="body" color={colors.text.secondary} style={styles.logMemo}>
+                            {log.memo}
+                          </Text>
+                        ) : (
+                          <Text variant="caption" color={colors.text.tertiary}>
+                            メモはありません。
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
             </View>
           </ScrollView>
         </Animated.View>
       </View>
+
+      <Modal
+        visible={Boolean(photoPreviewUri)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoPreviewUri(null)}
+      >
+        <Pressable
+          style={styles.previewBackdrop}
+          onPress={() => setPhotoPreviewUri(null)}
+          accessibilityRole="button"
+          accessibilityLabel="閉じる"
+        >
+          {photoPreviewUri ? (
+            <AppImage
+              source={{ uri: photoPreviewUri }}
+              style={styles.previewImage}
+              contentFit="contain"
+              accessibilityLabel="拡大写真"
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
     </Modal>
   );
 };
@@ -283,5 +412,50 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
+  },
+  logsSection: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  logsTitle: {
+    marginBottom: spacing.xs,
+  },
+  logRow: {
+    gap: spacing.xs,
+  },
+  logContentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  logPhotoButton: {
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  logPhotoPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logTextColumn: {
+    flex: 1,
+  },
+  logMemo: {
+    lineHeight: 20,
+  },
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay.scrim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.md,
   },
 });

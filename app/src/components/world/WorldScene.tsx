@@ -14,6 +14,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, Animated } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { WorldLayer } from './WorldLayer';
 import { CharacterLayer } from './CharacterLayer';
 import { useWorldSignals } from '../../state/worldSignals';
@@ -23,6 +24,17 @@ import {
   getRoomMaskAsset,
 } from '../../assets/manifest';
 import { colors, duration, easing, scale } from '../../tokens';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/**
+ * Blur intensity for world backdrop (approximates CSS blur(20px))
+ * expo-blur uses intensity scale 0-100
+ * @see docs/ux/phase-1/01-screen-flows.md §2.3 "blur(20px)"
+ */
+export const BLUR_INTENSITY = 50;
 
 // ============================================================================
 // Types
@@ -172,7 +184,8 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
         )}
       </Animated.View>
 
-      {/* Blur overlay for screen transitions */}
+      {/* Blur overlay for screen transitions (S-02〜S-06) */}
+      {/* Uses expo-blur BlurView for native blur(20px) effect */}
       {blurred && (
         <Animated.View
           style={[
@@ -181,7 +194,13 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
               opacity: blurAnim,
             },
           ]}
-        />
+        >
+          <BlurView
+            intensity={BLUR_INTENSITY}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
       )}
     </View>
   );
@@ -198,7 +217,9 @@ const styles = StyleSheet.create({
   },
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay.soft,
     zIndex: 100,
+    // Note: backgroundColor removed - BlurView provides visual effect
+    // Optional: add subtle color tint via overlay if needed
+    // backgroundColor: colors.overlay.soft,
   },
 });

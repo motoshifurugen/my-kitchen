@@ -74,6 +74,28 @@ export const colors = {
     secondary: extractValue(rawTokens.color.accent.secondary),
     subtle: extractValue(rawTokens.color.accent.subtle),
   },
+  button: {
+    primary: {
+      background: extractValue(rawTokens.color.button.primary.background),
+      backgroundPressed: extractValue(rawTokens.color.button.primary.backgroundPressed),
+      backgroundDisabled: extractValue(rawTokens.color.button.primary.backgroundDisabled),
+      text: extractValue(rawTokens.color.button.primary.text),
+    },
+    secondary: {
+      background: extractValue(rawTokens.color.button.secondary.background),
+      backgroundPressed: extractValue(rawTokens.color.button.secondary.backgroundPressed),
+      border: extractValue(rawTokens.color.button.secondary.border),
+      borderDisabled: extractValue(rawTokens.color.button.secondary.borderDisabled),
+      text: extractValue(rawTokens.color.button.secondary.text),
+      textDisabled: extractValue(rawTokens.color.button.secondary.textDisabled),
+    },
+    tertiary: {
+      background: extractValue(rawTokens.color.button.tertiary.background),
+      backgroundPressed: extractValue(rawTokens.color.button.tertiary.backgroundPressed),
+      text: extractValue(rawTokens.color.button.tertiary.text),
+      textDisabled: extractValue(rawTokens.color.button.tertiary.textDisabled),
+    },
+  },
   semantic: {
     success: {
       text: extractValue((rawTokens.color.semantic.success as SemanticColorSet).text),

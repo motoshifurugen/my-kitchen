@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from '../molecules';
 import { Text } from '../atoms';
+import { useIsReducedMotion } from '../../hooks/useReducedMotion';
 import { colors, radius, spacing, size } from '../../tokens';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -48,6 +49,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
   showCloseButton = true,
 }) => {
   const insets = useSafeAreaInsets();
+  const reduceMotionEnabled = useIsReducedMotion();
 
   const handleScrimPress = () => {
     if (closeOnScrimTap) {
@@ -67,7 +69,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType={reduceMotionEnabled ? 'fade' : 'slide'}
       onRequestClose={onClose}
       statusBarTranslucent
     >

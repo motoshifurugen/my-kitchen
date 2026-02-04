@@ -5,19 +5,21 @@
  * the 2.5D kitchen scene with ambient animations.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Switch,
+  Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WorldScene } from '../components/world';
-import { Text, PressableBase } from '../components/atoms';
-import { IconButton, Chip } from '../components/molecules';
-import { theme } from '../tokens';
+import { Text, PressableBase, Icon, IconName } from '../components/atoms';
+import { Text as UIText } from '../components/ui';
+import { Chip } from '../components/molecules';
+import { theme, footer as footerTokens, duration, easing } from '../tokens';
 import {
   useWorldSignals,
   TIME_ORDER,
@@ -167,16 +169,75 @@ const devStyles = StyleSheet.create({
 });
 
 // ============================================================================
+// Large Rounded Button Component
+// ============================================================================
+
+interface LargeRoundedButtonProps {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  accessibilityLabel: string;
+}
+
+const LargeRoundedButton: React.FC<LargeRoundedButtonProps> = ({
+  icon,
+  label,
+  onPress,
+  accessibilityLabel,
+}) => {
+  return (
+    <PressableBase
+      style={styles.largeButton}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+    >
+      <View style={styles.largeButtonContent}>
+        <Icon name={icon} size={32} color={theme.colors.text.primary} weight="fill" />
+        <UIText size="md" weight="medium" color={theme.colors.text.primary} style={styles.largeButtonLabel}>
+          {label}
+        </UIText>
+      </View>
+    </PressableBase>
+  );
+};
+
+// ============================================================================
 // Home Screen
 // ============================================================================
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
+  // Fade-in animation for first appearance after onboarding
+  const fadeAnim = useRef(new Animated.Value(1)).current; // Start from white (opacity 1)
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   // Dev toggle for character layer
   const [showCharacter, setShowCharacter] = useState(true);
   // Dev toggle for calibration guides
   const [showGuides, setShowGuides] = useState(false);
+  const [showDevControls, setShowDevControls] = useState(true);
+
+  // Fade-in animation on first mount (after onboarding)
+  useEffect(() => {
+    if (!hasAnimated) {
+      // Start from white overlay, fade to transparent to reveal world
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 800, // ゆっくりと世界が開ける（800ms）
+        easing: easing.easeOut,
+        useNativeDriver: true,
+      }).start(() => {
+        setHasAnimated(true);
+      });
+    }
+  }, [hasAnimated, fadeAnim]);
+
+  // Calculate button container position (above footer)
+  const footerHeight = footerTokens.height + insets.bottom;
+  const buttonContainerBottom = footerHeight + theme.spacing.lg;
 
   return (
     <View style={styles.container}>
@@ -187,25 +248,78 @@ export const HomeScreen: React.FC = () => {
         showFootGuide={__DEV__ && showGuides}
       />
 
-      {/* Header with Settings Icon */}
-      <SafeAreaView edges={['top']} style={styles.header}>
-        <IconButton
-          icon="SlidersHorizontal"
+      {/* Dev-only controls toggle */}
+      {__DEV__ && (
+        <PressableBase
+          style={[
+            styles.devToggleButton,
+            { top: insets.top + theme.spacing.sm },
+          ]}
+          onPress={() => setShowDevControls((prev) => !prev)}
+          accessibilityLabel="DEVパネルを切り替える"
+          accessibilityRole="button"
+        >
+          <Icon
+            name={showDevControls ? 'X' : 'Info'}
+            size={18}
+            color={theme.colors.text.inverse}
+          />
+          <Text variant="caption" style={styles.devToggleLabel}>
+            DEV
+          </Text>
+        </PressableBase>
+      )}
+
+      {/* Large Rounded Buttons: Shelf and Search */}
+      <View
+        style={[
+          styles.buttonContainer,
+          {
+            bottom: buttonContainerBottom,
+            paddingBottom: theme.spacing.lg,
+          },
+        ]}
+      >
+        <LargeRoundedButton
+          icon="Books"
+          label="棚"
           onPress={() => {
             // @ts-ignore - navigation type will be set up in TabNavigator
-            navigation.navigate('Settings');
+            navigation.navigate('Shelf');
           }}
-          accessibilityLabel="設定"
+          accessibilityLabel="棚"
         />
-      </SafeAreaView>
+        <LargeRoundedButton
+          icon="MagnifyingGlass"
+          label="探索"
+          onPress={() => {
+            // @ts-ignore - navigation type will be set up in TabNavigator
+            navigation.navigate('Search');
+          }}
+          accessibilityLabel="探索"
+        />
+      </View>
 
       {/* Dev-only layer controls */}
-      {__DEV__ && (
+      {__DEV__ && showDevControls && (
         <DevLayerControls
           showCharacter={showCharacter}
           setShowCharacter={setShowCharacter}
           showGuides={showGuides}
           setShowGuides={setShowGuides}
+        />
+      )}
+
+      {/* White overlay for fade-in animation (reveals world slowly) */}
+      {!hasAnimated && (
+        <Animated.View
+          style={[
+            styles.whiteOverlay,
+            {
+              opacity: fadeAnim,
+            },
+          ]}
+          pointerEvents="none"
         />
       )}
     </View>
@@ -221,14 +335,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background.primary,
   },
-  header: {
+  buttonContainer: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: theme.spacing.md,
     paddingHorizontal: theme.spacing.screen.horizontal,
-    paddingTop: theme.spacing.sm,
+  },
+  largeButton: {
+    flex: 1,
+    maxWidth: 160,
+    minHeight: 80,
+    backgroundColor: theme.colors.surface.elevated,
+    borderRadius: theme.radius.xl,
+    ...theme.shadow.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  largeButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+  },
+  largeButtonLabel: {
+    marginTop: theme.spacing.xs,
+  },
+  devToggleButton: {
+    position: 'absolute',
+    right: theme.spacing.screen.horizontal,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  devToggleLabel: {
+    color: theme.colors.text.inverse,
+  },
+  whiteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFFFFF',
+    zIndex: 1000,
   },
 });

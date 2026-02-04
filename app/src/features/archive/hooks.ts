@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { DishCard, DishCategory } from './types';
-import { SAMPLE_CARDS } from './data/sampleCards';
+import { cardsRepo } from '../../repositories';
 
 // Skeleton display threshold (ms)
 const SKELETON_DELAY = 900;
@@ -79,19 +79,27 @@ export function useArchiveCards(): UseArchiveCardsResult {
       }
     }, SKELETON_DELAY);
 
-    // Simulate data fetching (will be replaced with actual fetch)
     const fetchData = async () => {
       try {
-        // Development delay for testing skeleton
         if (DEV_LOADING_DELAY > 0) {
           await new Promise((resolve) => setTimeout(resolve, DEV_LOADING_DELAY));
         }
 
-        if (isMounted) {
-          setCards(SAMPLE_CARDS);
-          setIsLoading(false);
-          setShowSkeleton(false);
-        }
+        const rows = await cardsRepo.listAll();
+        if (!isMounted) return;
+
+        const mapped: DishCard[] = rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          cookedAt: row.last_cooked_at ?? '',
+          cookCount: row.times_cooked ?? 0,
+          category: row.category ?? undefined,
+          isFavorite: row.is_favorite === 1,
+        }));
+
+        setCards(mapped);
+        setIsLoading(false);
+        setShowSkeleton(false);
       } catch (err) {
         if (isMounted) {
           setError(err instanceof Error ? err : new Error('Failed to load cards'));

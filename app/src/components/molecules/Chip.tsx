@@ -60,6 +60,7 @@ export const Chip: React.FC<ChipProps> = ({
       disabled={disabled}
       accessibilityLabel={label}
       accessibilityRole="button"
+      accessibilityState={{ selected }}
     >
       {icon && (
         <>

@@ -21,12 +21,14 @@ import {
 } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { FlowShell } from '../components/templates';
-import { Button } from '../components/molecules';
+import { Button, IconButton } from '../components/molecules';
 import { AppImage, Icon, PressableBase, Surface, Text } from '../components/atoms';
 import { theme } from '../tokens';
 import type { RecordStackParamList } from '../navigation/RecordNavigator';
 import type { RootTabParamList } from '../navigation/TabNavigator';
 import { MENU_CATALOG } from '../data/menuCatalog';
+import { recordCooking } from '../repositories';
+import { getErrorMessage } from '../utils/errorMessages';
 
 const MENU_GROUPS: { label: string; ids: string[] }[] = [
   {
@@ -86,6 +88,7 @@ export const RecordScreen: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [photoSize, setPhotoSize] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (route.params?.photoUri !== undefined) {
@@ -102,6 +105,13 @@ export const RecordScreen: React.FC = () => {
     navigation.navigate('RecordSelect');
   }, [navigation]);
 
+  const navigateToSettings = useCallback(() => {
+    const parentNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
+    if (parentNavigation) {
+      parentNavigation.navigate('Settings');
+    }
+  }, [navigation]);
+
   const handleOpenCamera = useCallback(() => {
     navigation.navigate('RecordCamera');
   }, [navigation]);
@@ -113,7 +123,8 @@ export const RecordScreen: React.FC = () => {
         permission.granted || permission.status === ImagePicker.PermissionStatus.GRANTED;
       const limited = permission.status === ImagePicker.PermissionStatus.LIMITED;
       if (!granted && !limited) {
-        Alert.alert('写真にアクセスできませんでした。\n\n設定から許可をご確認ください。');
+        const { title, message } = getErrorMessage('photoAccess');
+        Alert.alert(title, message);
         return;
       }
 
@@ -129,7 +140,8 @@ export const RecordScreen: React.FC = () => {
         setPhotoUri(asset.uri);
       }
     } catch {
-      Alert.alert('写真にアクセスできませんでした。\n\n設定から許可をご確認ください。');
+      const { title, message } = getErrorMessage('photoAccess');
+      Alert.alert(title, message);
     }
   }, []);
 
@@ -177,10 +189,24 @@ export const RecordScreen: React.FC = () => {
 
   const isDishNameValid = dishName.trim().length > 0;
 
-  const handleSave = useCallback(() => {
-    if (!isDishNameValid) return;
-    navigation.navigate('RecordCelebration');
-  }, [isDishNameValid, navigation]);
+  const handleSave = useCallback(async () => {
+    if (!isDishNameValid || isSaving) return;
+    setIsSaving(true);
+    try {
+      await recordCooking({
+        title: dishName.trim(),
+        memo: memo.trim() || undefined,
+        photoUri,
+      });
+      navigation.navigate('RecordCelebration');
+    } catch (error) {
+      console.error('[record] save failed', error);
+      const { title, message } = getErrorMessage('save');
+      Alert.alert(title, message);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [dishName, isDishNameValid, isSaving, memo, navigation, photoUri]);
 
   const suggestionVisible = showSuggestions && filteredMenuItems.length > 0;
   const memoButtonLabel = memo.trim().length > 0 ? 'メモ ✓' : 'メモを追加';
@@ -356,7 +382,7 @@ export const RecordScreen: React.FC = () => {
               variant="primary"
               fullWidth
               onPress={handleSave}
-              disabled={!isDishNameValid}
+              disabled={!isDishNameValid || isSaving}
               accessibilityLabel="図鑑に加える"
             />
           </View>
