@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import {
   type NavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import { FlowShell } from '../components/templates';
 import { Button, IconButton } from '../components/molecules';
@@ -76,7 +78,7 @@ const MENU_GROUPS: { label: string; ids: string[] }[] = [
 ];
 
 export const RecordScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp<RecordStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RecordStackParamList>>();
   const route = useRoute<RouteProp<RecordStackParamList, 'RecordSelect'>>();
   const scrollRef = useRef<ScrollView | null>(null);
 
@@ -116,15 +118,42 @@ export const RecordScreen: React.FC = () => {
     navigation.navigate('RecordCamera');
   }, [navigation]);
 
+  const showPhotoAccessAlert = useCallback(() => {
+    const { title, message } = getErrorMessage('photoAccess');
+    Alert.alert(title, message, [
+      { text: '閉じる', style: 'cancel' },
+      {
+        text: '設定を開く',
+        onPress: () => {
+          Linking.openSettings();
+        },
+      },
+    ]);
+  }, []);
+
   const handlePickFromLibrary = useCallback(async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      const granted =
-        permission.granted || permission.status === ImagePicker.PermissionStatus.GRANTED;
-      const limited = permission.status === ImagePicker.PermissionStatus.LIMITED;
-      if (!granted && !limited) {
-        const { title, message } = getErrorMessage('photoAccess');
-        Alert.alert(title, message);
+      const currentPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
+      const isGranted =
+        currentPermission.granted ||
+        currentPermission.status === ImagePicker.PermissionStatus.GRANTED ||
+        currentPermission.status === ImagePicker.PermissionStatus.LIMITED;
+
+      let permissionGranted = isGranted;
+
+      if (!permissionGranted) {
+        // Always try to request if not yet granted
+        // On iOS: UNDETERMINED -> shows prompt, DENIED + canAskAgain -> shows prompt
+        // DENIED + !canAskAgain -> returns DENIED without prompt
+        const requested = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        permissionGranted =
+          requested.granted ||
+          requested.status === ImagePicker.PermissionStatus.GRANTED ||
+          requested.status === ImagePicker.PermissionStatus.LIMITED;
+      }
+
+      if (!permissionGranted) {
+        showPhotoAccessAlert();
         return;
       }
 
@@ -139,11 +168,12 @@ export const RecordScreen: React.FC = () => {
       if (asset?.uri) {
         setPhotoUri(asset.uri);
       }
-    } catch {
-      const { title, message } = getErrorMessage('photoAccess');
-      Alert.alert(title, message);
+    } catch (error) {
+      // Log error for debugging, but show user-friendly message
+      console.warn('[RecordScreen] Photo library error:', error);
+      showPhotoAccessAlert();
     }
-  }, []);
+  }, [showPhotoAccessAlert]);
 
   const handleClearPhoto = useCallback(() => {
     setPhotoUri(null);
@@ -193,12 +223,16 @@ export const RecordScreen: React.FC = () => {
     if (!isDishNameValid || isSaving) return;
     setIsSaving(true);
     try {
-      await recordCooking({
+      const { recipeId } = await recordCooking({
         title: dishName.trim(),
         memo: memo.trim() || undefined,
         photoUri,
       });
-      navigation.navigate('RecordCelebration');
+      navigation.replace('RecordCelebration', {
+        recipeTitle: dishName.trim(),
+        recipeId,
+        menuId: selectedMenuId || null,
+      });
     } catch (error) {
       console.error('[record] save failed', error);
       const { title, message } = getErrorMessage('save');
@@ -206,7 +240,7 @@ export const RecordScreen: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [dishName, isDishNameValid, isSaving, memo, navigation, photoUri]);
+  }, [dishName, isDishNameValid, isSaving, memo, navigation, photoUri, selectedMenuId]);
 
   const suggestionVisible = showSuggestions && filteredMenuItems.length > 0;
   const memoButtonLabel = memo.trim().length > 0 ? 'メモ ✓' : 'メモを追加';
@@ -307,7 +341,7 @@ export const RecordScreen: React.FC = () => {
               <TextInput
                 value={dishName}
                 onChangeText={handleDishNameChange}
-                placeholder="（空欄）"
+                placeholder="例：カレーライス"
                 placeholderTextColor={theme.colors.text.tertiary}
                 style={styles.textInput}
                 accessibilityLabel="料理名"
