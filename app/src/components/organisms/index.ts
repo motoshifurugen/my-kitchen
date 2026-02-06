@@ -7,6 +7,7 @@
 export { HeaderBar, type HeaderBarProps } from './HeaderBar';
 export { ModalSheet, type ModalSheetProps } from './ModalSheet';
 export { EmptyStateBlock, type EmptyStateBlockProps } from './EmptyStateBlock';
+export { TapBloomOverlay } from './TapBloomOverlay';
 export {
   RecipeDetailModal,
   type RecipeDetailModalProps,

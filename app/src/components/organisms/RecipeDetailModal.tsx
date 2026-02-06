@@ -57,6 +57,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   const reduceMotionEnabled = useIsReducedMotion();
   const [logs, setLogs] = useState<CookLogRow[]>([]);
   const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(null);
+  const [interactionReady, setInteractionReady] = useState(false);
 
   // Animation values
   const opacity = useRef(new Animated.Value(0)).current;
@@ -65,6 +66,11 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   // Run enter/exit animation
   useEffect(() => {
     if (visible && card) {
+      setInteractionReady(false);
+      const interactionTimer = setTimeout(() => {
+        setInteractionReady(true);
+      }, 200);
+
       // Enter animation
       // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
       const animations = [
@@ -91,10 +97,13 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
       }
 
       Animated.parallel(animations).start();
+
+      return () => clearTimeout(interactionTimer);
     } else {
       // Reset for next open
       opacity.setValue(0);
       scale.setValue(reduceMotionEnabled ? 1 : 0.95);
+      setInteractionReady(false);
     }
   }, [visible, card, opacity, scale, reduceMotionEnabled]);
 
@@ -121,6 +130,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   }
 
   const handleClose = () => {
+    if (!interactionReady) return;
     // Exit animation then close
     // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
     const animations = [
@@ -351,6 +361,8 @@ const styles = StyleSheet.create({
     // MVP: scrim only, no blur
     // TODO: UX-LATER: world blur backdrop
     backgroundColor: colors.overlay.scrim,
+    zIndex: 1,
+    elevation: 1,
   },
   modalCard: {
     width: MODAL_WIDTH,
@@ -358,6 +370,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     overflow: 'hidden',
     ...shadow.lg,
+    minHeight: 240,
+    alignSelf: 'center',
+    zIndex: 2,
+    elevation: 2,
   },
   closeButtonContainer: {
     position: 'absolute',
@@ -366,7 +382,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   scrollView: {
-    flex: 1,
+    maxHeight: MODAL_MAX_HEIGHT,
   },
   scrollContent: {
     paddingTop: spacing.sm + size.tap.recommended, // Space for close button

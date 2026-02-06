@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FlatList, StyleSheet, View, useWindowDimensions, ScrollView } from 'react-native';
 import {
   useNavigation,
   useRoute,
@@ -15,6 +15,7 @@ import {
 import { AppShell } from '../components/templates';
 import { HeaderBar, EmptyStateBlock, RecipeDetailModal } from '../components/organisms';
 import { DishCardSkeleton, EncyclopediaCardItem, getCardDimensions } from '../components/molecules';
+import { Text } from '../components/atoms';
 import { theme } from '../tokens';
 import {
   DishCard,
@@ -77,12 +78,14 @@ export const EncyclopediaGridScreen: React.FC = () => {
       const entries = ENCYCLOPEDIA_CATALOG;
       return entries.map((entry: EncyclopediaEntry) => {
         const card = cardsByTitle.get(entry.title);
+        // isEmpty: card doesn't exist OR cookCount is 0 (never cooked)
+        const isEmpty = !card || (card.cookCount ?? 0) === 0;
         return {
           id: entry.id,
           title: entry.title,
           icon: entry.icon,
-          card,
-          isEmpty: !card,
+          card: isEmpty ? undefined : card, // Only include card if it has been cooked
+          isEmpty,
         };
       });
     }
@@ -95,15 +98,30 @@ export const EncyclopediaGridScreen: React.FC = () => {
 
     return entries.map((entry: EncyclopediaEntry) => {
       const card = cardsByTitle.get(entry.title);
+      // isEmpty: card doesn't exist OR cookCount is 0 (never cooked)
+      const isEmpty = !card || (card.cookCount ?? 0) === 0;
       return {
         id: entry.id,
         title: entry.title,
         icon: entry.icon,
-        card,
-        isEmpty: !card,
+        card: isEmpty ? undefined : card, // Only include card if it has been cooked
+        isEmpty,
       };
     });
   }, [cardsByTitle, catalogByTitle, category, mode, sortByKana]);
+
+  // Split items into registered (cooked) and unregistered (not cooked yet)
+  const { registeredItems, unregisteredItems } = useMemo(() => {
+    if (mode === 'favorite') {
+      // For favorites, all items are registered (they are favorited)
+      return { registeredItems: gridItems, unregisteredItems: [] };
+    }
+
+    const registered = gridItems.filter((item) => !item.isEmpty);
+    const unregistered = gridItems.filter((item) => item.isEmpty);
+
+    return { registeredItems: registered, unregisteredItems: unregistered };
+  }, [gridItems, mode]);
 
   useEffect(() => {
     if (!openCardId) return;
@@ -156,6 +174,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
           cardWidth={cardWidth}
           cardHeight={cardHeight}
           onPress={() => handleCardPress({ title: item.title, card: item.card })}
+          disabled={item.isEmpty}
         />
       </View>
     ),
@@ -188,6 +207,31 @@ export const EncyclopediaGridScreen: React.FC = () => {
     </View>
   );
 
+  const renderGridSection = (items: Array<{ id: string; title: string; icon?: EncyclopediaEntry['icon']; card?: DishCard; isEmpty?: boolean }>) => {
+    if (items.length === 0) return null;
+
+    return (
+      <View style={styles.gridSection}>
+        <View style={[styles.gridContent, styles.grid]}>
+          {items.map((item) => (
+            <View key={item.id} style={styles.cardWrapper}>
+              <EncyclopediaCardItem
+                title={item.title}
+                icon={item.icon}
+                cookCount={item.card?.cookCount}
+                isEmpty={item.isEmpty}
+                cardWidth={cardWidth}
+                cardHeight={cardHeight}
+                onPress={() => handleCardPress({ title: item.title, card: item.card })}
+                disabled={item.isEmpty}
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <AppShell
       showWorldBackground
@@ -199,22 +243,56 @@ export const EncyclopediaGridScreen: React.FC = () => {
         />
       }
     >
-      <View style={styles.contentContainer}>
-        {showSkeleton && renderSkeletonGrid()}
-        {!showSkeleton && gridItems.length > 0 && (
-          <FlatList
-            data={gridItems}
-            renderItem={renderCard}
-            keyExtractor={(item) => item.id}
-            numColumns={columns}
-            key={columns}
-            columnWrapperStyle={columns > 1 ? styles.row : undefined}
-            contentContainerStyle={styles.gridContent}
-            showsVerticalScrollIndicator={false}
-          />
+      <ScrollView
+        style={styles.contentContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* For 'all' and 'category' modes, always show unlocked cards (even while loading) */}
+        {/* For 'favorite' mode, show skeleton while loading */}
+        {mode === 'favorite' && showSkeleton && renderSkeletonGrid()}
+        
+        {mode === 'favorite' && !showSkeleton && (
+          <>
+            {gridItems.length > 0 && (
+              <View style={[styles.gridContent, styles.grid]}>
+                {gridItems.map((item) => (
+                  <View key={item.id} style={styles.cardWrapper}>
+                    <EncyclopediaCardItem
+                      title={item.title}
+                      icon={item.icon}
+                      cookCount={item.card?.cookCount}
+                      isEmpty={item.isEmpty}
+                      cardWidth={cardWidth}
+                      cardHeight={cardHeight}
+                      onPress={() => handleCardPress({ title: item.title, card: item.card })}
+                      disabled={item.isEmpty}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
+            {gridItems.length === 0 && renderEmptyState()}
+          </>
         )}
-        {!showSkeleton && !isLoading && gridItems.length === 0 && mode === 'favorite' && renderEmptyState()}
-      </View>
+
+        {(mode === 'all' || mode === 'category') && (
+          <>
+            {/* Registered (cooked) items */}
+            {registeredItems.length > 0 && renderGridSection(registeredItems)}
+            
+            {/* Unregistered (not cooked yet) items */}
+            {unregisteredItems.length > 0 && (
+              <View style={styles.unregisteredSection}>
+                <Text variant="caption" style={styles.sectionLabel}>
+                  未登録カード
+                </Text>
+                {renderGridSection(unregisteredItems)}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
 
       <RecipeDetailModal
         visible={isModalVisible}
@@ -233,15 +311,24 @@ const createStyles = (pagePaddingX: number, contentMaxWidth: number, shouldCente
     contentContainer: {
       flex: 1,
     },
+    scrollContent: {
+      paddingBottom: theme.spacing.xl,
+      ...(shouldCenterContent && {
+        maxWidth: contentMaxWidth,
+        alignSelf: 'center',
+        width: '100%',
+      }),
+    },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: pagePaddingX,
       gap: theme.spacing.sm,
+    },
+    gridSection: {
+      marginBottom: theme.spacing.xl,
     },
     gridContent: {
       paddingHorizontal: pagePaddingX,
-      paddingBottom: theme.spacing.xl,
       ...(shouldCenterContent && {
         maxWidth: contentMaxWidth,
         alignSelf: 'center',
@@ -255,11 +342,25 @@ const createStyles = (pagePaddingX: number, contentMaxWidth: number, shouldCente
     cardWrapper: {
       marginBottom: theme.spacing.sm,
     },
+    unregisteredSection: {
+      marginTop: theme.spacing.xl,
+      gap: theme.spacing.sm,
+    },
+    sectionLabel: {
+      color: theme.colors.text.secondary,
+      paddingHorizontal: pagePaddingX,
+      ...(shouldCenterContent && {
+        maxWidth: contentMaxWidth,
+        alignSelf: 'center',
+        width: '100%',
+      }),
+    },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: pagePaddingX,
+      minHeight: 400,
       ...(shouldCenterContent && {
         maxWidth: contentMaxWidth,
         alignSelf: 'center',

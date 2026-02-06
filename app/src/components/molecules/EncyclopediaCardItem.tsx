@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { PressableBase, Text, AppImage, type AppImageProps } from '../atoms';
-import { colors, radius, spacing, shadow } from '../../tokens';
+import { View, StyleSheet, ViewStyle, Pressable } from 'react-native';
+import { Text, AppImage, type AppImageProps } from '../atoms';
+import { colors, radius, spacing, shadow, size } from '../../tokens';
 
 const GRADE_STEPS = 4;
 
@@ -36,6 +36,7 @@ export interface EncyclopediaCardItemProps {
   cardWidth: number;
   cardHeight: number;
   onPress: () => void;
+  disabled?: boolean;
 }
 
 export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
@@ -46,6 +47,7 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
   cardWidth,
   cardHeight,
   onPress,
+  disabled = false,
 }) => {
   const containerStyle: ViewStyle = {
     width: cardWidth,
@@ -59,12 +61,25 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
   const showIconSilhouette = isEmpty && icon;
   const showIcon = !isEmpty && icon;
 
+  // Check if empty (not cooked yet) - but still allow interaction
+  const isEmptyState = isEmpty;
+  const DISABLED_OPACITY = 0.65; // Less transparent than opacity.disabled (0.4)
+
   return (
-    <PressableBase
-      style={[styles.container, containerStyle, isEmpty && styles.containerEmpty]}
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        containerStyle,
+        isEmptyState && styles.containerDisabled,
+        // Apply base opacity for empty cards
+        isEmptyState && { opacity: DISABLED_OPACITY },
+        // Apply pressed feedback for all cards (including empty ones)
+        pressed && { opacity: isEmptyState ? DISABLED_OPACITY * 0.92 : 0.92 },
+      ]}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      hitSlop={size.tap.minimum}
     >
       <View style={styles.iconContainer}>
         {showIcon ? (
@@ -82,7 +97,7 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
         <Text
           variant="caption"
           numberOfLines={1}
-          style={[styles.title, isEmpty && styles.titleEmpty]}
+          style={[styles.title, isEmptyState && styles.titleDisabled]}
         >
           {title}
         </Text>
@@ -98,7 +113,7 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
           ))}
         </View>
       </View>
-    </PressableBase>
+    </Pressable>
   );
 };
 
@@ -113,9 +128,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border.default,
     ...shadow.sm,
   },
-  containerEmpty: {
+  containerDisabled: {
     backgroundColor: colors.background.secondary,
-    borderColor: colors.border.default,
+    borderColor: colors.border.disabled,
+    // Remove shadow for disabled state (design system: disabled should have no shadow)
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 0,
+    shadowOpacity: 0,
+    shadowColor: 'transparent',
+    elevation: 0,
+    // Set opacity to be less transparent than opacity.disabled (0.4) but still grayed out
+    opacity: 0.65,
   },
   iconContainer: {
     flex: 1,
@@ -140,8 +163,8 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
   },
-  titleEmpty: {
-    color: colors.text.tertiary,
+  titleDisabled: {
+    color: colors.text.disabled,
   },
   gradeRow: {
     flexDirection: 'row',

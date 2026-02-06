@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MainNavigator, OnboardingNavigator } from './src/navigation';
+import { TapBloomOverlay } from './src/components/organisms';
 import { useWorldSignalsUpdater } from './src/hooks';
 import { usePreload } from './src/utils/preload';
 import { theme } from './src/tokens';
@@ -111,24 +112,32 @@ const AppContent: React.FC = () => {
 
   if (fontError) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>フォントの読み込みに失敗しました</Text>
-        <Text style={styles.errorDetail}>{fontError.message}</Text>
-      </View>
+      <TapBloomOverlay>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>フォントの読み込みに失敗しました</Text>
+          <Text style={styles.errorDetail}>{fontError.message}</Text>
+        </View>
+      </TapBloomOverlay>
     );
   }
 
   if (isHydrating || isLoadingAssets || !isDbReady) {
-    return <LoadingScreen />;
+    return (
+      <TapBloomOverlay>
+        <LoadingScreen />
+      </TapBloomOverlay>
+    );
   }
 
   if (dbError) {
     const { title, message } = getErrorMessage('load');
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{title}</Text>
-        <Text style={styles.errorMessage}>{message}</Text>
-      </View>
+      <TapBloomOverlay>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{title}</Text>
+          <Text style={styles.errorMessage}>{message}</Text>
+        </View>
+      </TapBloomOverlay>
     );
   }
 
@@ -136,35 +145,45 @@ const AppContent: React.FC = () => {
   if (error) {
     const { title, message } = getErrorMessage('load');
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{title}</Text>
-        <Text style={styles.errorMessage}>{message}</Text>
-      </View>
+      <TapBloomOverlay>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{title}</Text>
+          <Text style={styles.errorMessage}>{message}</Text>
+        </View>
+      </TapBloomOverlay>
     );
   }
 
   // Show onboarding if not completed
   if (showOnboarding) {
     return (
-      <>
-        <StatusBar style="dark" />
-        <OnboardingNavigator onComplete={completeOnboarding} />
-      </>
+      <TapBloomOverlay>
+        <>
+          <StatusBar style="dark" />
+          <OnboardingNavigator onComplete={completeOnboarding} />
+        </>
+      </TapBloomOverlay>
     );
   }
 
   // Show main app if onboarding completed
   if (showMainApp) {
     return (
-      <>
-        <StatusBar style="dark" />
-        <MainNavigator />
-      </>
+      <TapBloomOverlay>
+        <>
+          <StatusBar style="dark" />
+          <MainNavigator />
+        </>
+      </TapBloomOverlay>
     );
   }
 
   // Fallback (should not reach here)
-  return <LoadingScreen />;
+  return (
+    <TapBloomOverlay>
+      <LoadingScreen />
+    </TapBloomOverlay>
+  );
 };
 
 // ============================================================================
