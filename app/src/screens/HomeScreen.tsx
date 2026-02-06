@@ -5,12 +5,10 @@
  * the 2.5D kitchen scene with ambient animations.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
-  ScrollView,
-  Switch,
   Animated,
   Pressable,
   ViewStyle,
@@ -19,156 +17,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WorldScene } from '../components/world';
 import { Text, PressableBase, Icon, IconName } from '../components/atoms';
-import { Text as UIText } from '../components/ui';
-import { Chip } from '../components/molecules';
-import { theme, footer as footerTokens, duration, easing, scale } from '../tokens';
-import {
-  useWorldSignals,
-  TIME_ORDER,
-  TimeOfDay,
-  AgeGroup,
-} from '../state/worldSignals';
-
-// ============================================================================
-// Dev Layer Controls (Development Only)
-// ============================================================================
-
-interface DevLayerControlsProps {
-  showCharacter: boolean;
-  setShowCharacter: (value: boolean) => void;
-  showGuides: boolean;
-  setShowGuides: (value: boolean) => void;
-}
-
-const DevLayerControls: React.FC<DevLayerControlsProps> = ({
-  showCharacter,
-  setShowCharacter,
-  showGuides,
-  setShowGuides,
-}) => {
-  const { timeOfDay, setTimeOfDay, ageGroup, setAgeGroup } = useWorldSignals();
-
-  const ageGroups: AgeGroup[] = ['young', 'adult', 'mature'];
-
-  const timeLabels: Record<TimeOfDay, string> = {
-    earlyMorning: '早朝',
-    morning: '朝',
-    day: '昼',
-    evening: '夕',
-    night: '夜',
-    lateNight: '深夜',
-  };
-
-  const ageLabels: Record<AgeGroup, string> = {
-    young: '10代',
-    adult: '20代',
-    mature: '40代',
-  };
-
-  return (
-    <View style={devStyles.container}>
-      <Text variant="caption" color="#fff" style={devStyles.title}>
-        DEV: Layer Controls
-      </Text>
-
-      {/* Layer Visibility Toggle */}
-      <View style={devStyles.toggleRow}>
-        <Text variant="caption" color="#fff">Character Layer</Text>
-        <Switch
-          value={showCharacter}
-          onValueChange={setShowCharacter}
-          trackColor={{ false: '#555', true: theme.colors.accent.primary }}
-          thumbColor="#fff"
-        />
-      </View>
-
-      {/* Calibration Guides Toggle */}
-      <View style={devStyles.toggleRow}>
-        <Text variant="caption" color="#fff">
-          Calibration Guides{' '}
-          <Text variant="caption" color="rgba(255,0,0,0.8)">Floor</Text>
-          {' / '}
-          <Text variant="caption" color="rgba(0,255,0,0.8)">Foot</Text>
-        </Text>
-        <Switch
-          value={showGuides}
-          onValueChange={setShowGuides}
-          trackColor={{ false: '#555', true: theme.colors.accent.primary }}
-          thumbColor="#fff"
-        />
-      </View>
-
-      {/* Time Selector */}
-      <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
-        Kitchen Time (base render)
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={devStyles.scrollRow}
-      >
-        {TIME_ORDER.map((time) => (
-          <Chip
-            key={time}
-            label={timeLabels[time]}
-            selected={timeOfDay === time}
-            onPress={() => setTimeOfDay(time)}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Character Selector */}
-      <Text variant="caption" color="rgba(255,255,255,0.5)" style={devStyles.label}>
-        Character Age (switch to verify foot alignment)
-      </Text>
-      <View style={devStyles.row}>
-        {ageGroups.map((age) => (
-          <Chip
-            key={age}
-            label={ageLabels[age]}
-            selected={ageGroup === age}
-            onPress={() => setAgeGroup(age)}
-          />
-        ))}
-      </View>
-    </View>
-  );
-};
-
-const devStyles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 100,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  title: {
-    marginBottom: 8,
-    opacity: 0.7,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  scrollRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-});
+import { theme, footer as footerTokens, duration, easing } from '../tokens';
+import { HomeHeader, type MealSlot } from '../components/organisms';
+import { logsRepo, type CookLogRow } from '../repositories';
 
 // ============================================================================
 // Large Rounded Button Component
@@ -273,11 +124,9 @@ export const HomeScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current; // Start from white (opacity 1)
   const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Dev toggle for character layer
-  const [showCharacter, setShowCharacter] = useState(true);
-  // Dev toggle for calibration guides
-  const [showGuides, setShowGuides] = useState(false);
-  const [showDevControls, setShowDevControls] = useState(true);
+  const [now, setNow] = useState<Date>(() => new Date());
+  const [logs, setLogs] = useState<CookLogRow[] | null>(null);
+  const clockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fade-in animation on first mount (after onboarding)
   useEffect(() => {
@@ -294,6 +143,97 @@ export const HomeScreen: React.FC = () => {
     }
   }, [hasAnimated, fadeAnim]);
 
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      logsRepo
+        .listAll()
+        .then((rows) => {
+          if (!isMounted) return;
+          setLogs(rows);
+        })
+        .catch((error) => {
+          if (__DEV__) {
+            console.error('[home] log load failed', error);
+          }
+        });
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    const scheduleNextTick = () => {
+      const current = new Date();
+      const msToNextMinute =
+        60000 - (current.getSeconds() * 1000 + current.getMilliseconds());
+
+      clockTimeoutRef.current = setTimeout(() => {
+        setNow(new Date());
+        scheduleNextTick();
+      }, msToNextMinute);
+    };
+
+    scheduleNextTick();
+    return () => {
+      if (clockTimeoutRef.current) {
+        clearTimeout(clockTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const dateLabel = useMemo(() => {
+    return `${now.getMonth() + 1}月${now.getDate()}日`;
+  }, [now]);
+
+  const presentBuckets = useMemo<MealSlot[]>(() => {
+    if (!logs || logs.length === 0) return [];
+
+    const formatDayKey = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const getNightKey = (date: Date): string => {
+      const adjusted = new Date(date);
+      if (adjusted.getHours() < 5) {
+        adjusted.setDate(adjusted.getDate() - 1);
+      }
+      return formatDayKey(adjusted);
+    };
+
+    const getBucket = (date: Date): MealSlot => {
+      const minutesFromMidnight = date.getHours() * 60 + date.getMinutes();
+      if (minutesFromMidnight >= 300 && minutesFromMidnight <= 629) return 'morning';
+      if (minutesFromMidnight >= 630 && minutesFromMidnight <= 1019) return 'day';
+      return 'night';
+    };
+
+    const todayKey = formatDayKey(now);
+    const nightKey = getNightKey(now);
+    const buckets = new Set<MealSlot>();
+
+    logs.forEach((log) => {
+      const cookedAt = new Date(log.cooked_at);
+      if (Number.isNaN(cookedAt.getTime())) return;
+
+      const bucket = getBucket(cookedAt);
+      const logKey = bucket === 'night' ? getNightKey(cookedAt) : formatDayKey(cookedAt);
+
+      if (bucket === 'night') {
+        if (logKey === nightKey) buckets.add(bucket);
+        return;
+      }
+
+      if (logKey === todayKey) buckets.add(bucket);
+    });
+
+    return ['morning', 'day', 'night'].filter((bucket) => buckets.has(bucket));
+  }, [logs, now]);
+
   // Calculate button container position (above footer)
   // Position buttons so their bottom edge aligns with footer top
   const footerHeight = footerTokens.height + insets.bottom;
@@ -302,32 +242,18 @@ export const HomeScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Kitchen World */}
       <WorldScene
-        showCharacter={showCharacter}
-        showFloorGuide={__DEV__ && showGuides}
-        showFootGuide={__DEV__ && showGuides}
+        showCharacter={true}
+        showFloorGuide={false}
+        showFootGuide={false}
       />
 
-      {/* Dev-only controls toggle */}
-      {__DEV__ && (
-        <PressableBase
-          style={[
-            styles.devToggleButton,
-            { top: insets.top + theme.spacing.sm },
-          ]}
-          onPress={() => setShowDevControls((prev) => !prev)}
-          accessibilityLabel="DEVパネルを切り替える"
-          accessibilityRole="button"
-        >
-          <Icon
-            name={showDevControls ? 'X' : 'Info'}
-            size={18}
-            color={theme.colors.text.inverse}
-          />
-          <Text variant="caption" style={styles.devToggleLabel}>
-            DEV
-          </Text>
-        </PressableBase>
-      )}
+      {/* HUD Header */}
+      <HomeHeader
+        dateLabel={dateLabel}
+        clockTime={now}
+        presentBuckets={presentBuckets}
+        hasAnyTodayLogs={presentBuckets.length > 0}
+      />
 
       {/* Large Rounded Buttons: Shelf and Search */}
       {/* Issue #148: Position directly above footer without extra padding */}
@@ -359,16 +285,6 @@ export const HomeScreen: React.FC = () => {
           accessibilityLabel="探索"
         />
       </View>
-
-      {/* Dev-only layer controls */}
-      {__DEV__ && showDevControls && (
-        <DevLayerControls
-          showCharacter={showCharacter}
-          setShowCharacter={setShowCharacter}
-          showGuides={showGuides}
-          setShowGuides={setShowGuides}
-        />
-      )}
 
       {/* White overlay for fade-in animation (reveals world slowly) */}
       {!hasAnimated && (
@@ -423,20 +339,6 @@ const styles = StyleSheet.create({
   },
   largeButtonLabel: {
     marginTop: 2, // Smaller margin to match record button style
-  },
-  devToggleButton: {
-    position: 'absolute',
-    right: theme.spacing.screen.horizontal,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  devToggleLabel: {
-    color: theme.colors.text.inverse,
   },
   whiteOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -18,8 +18,10 @@ import {
   BookshelfScreen,
   EncyclopediaGridScreen,
   BookshelfLogScreen,
+  RecipeScreen,
 } from '../screens';
 import type { DishCategory } from '../features/archive';
+import type { MenuItem } from '../data/menuCatalog';
 
 export type ShelfStackParamList = {
   Bookshelf: undefined;
@@ -30,6 +32,10 @@ export type ShelfStackParamList = {
     openCardId?: string;
   };
   BookshelfLog: undefined;
+  Recipe: {
+    title: string;
+    menuId?: MenuItem['id'] | null;
+  };
 };
 
 const Stack = createNativeStackNavigator<ShelfStackParamList>();
@@ -49,6 +55,7 @@ export const ShelfNavigator: React.FC = () => {
       <Stack.Screen name="Bookshelf" component={BookshelfScreen} />
       <Stack.Screen name="EncyclopediaGrid" component={EncyclopediaGridScreen} />
       <Stack.Screen name="BookshelfLog" component={BookshelfLogScreen} />
+      <Stack.Screen name="Recipe" component={RecipeScreen} />
     </Stack.Navigator>
   );
 };

@@ -280,7 +280,6 @@ export const getAmbientAssets = (): ImageSourcePropType[] => {
  */
 
 // AUTO-GENERATED:MENU_ICONS (do not edit)
-// Note: Use base names without @2x suffix - Metro auto-selects based on device pixel ratio
 export const MENU_ICONS = {
   "menu_chilled_tofu": require("../../assets/menu-icons/menu_chilled_tofu.webp"),
   "menu_curry_rice": require("../../assets/menu-icons/menu_curry_rice.webp"),
@@ -295,6 +294,7 @@ export const MENU_ICONS = {
   "menu_miso_soup": require("../../assets/menu-icons/menu_miso_soup.webp"),
   "menu_natto_rice": require("../../assets/menu-icons/menu_natto_rice.webp"),
   "menu_nikujaga": require("../../assets/menu-icons/menu_nikujaga.webp"),
+  "menu_no_image": require("../../assets/menu-icons/menu_no_image.webp"),
   "menu_omurice": require("../../assets/menu-icons/menu_omurice.webp"),
   "menu_onigiri": require("../../assets/menu-icons/menu_onigiri.webp"),
   "menu_oyakodon": require("../../assets/menu-icons/menu_oyakodon.webp"),

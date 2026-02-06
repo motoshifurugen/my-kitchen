@@ -12,5 +12,6 @@ export {
   RecipeDetailModal,
   type RecipeDetailModalProps,
 } from './RecipeDetailModal';
+export { HomeHeader } from './HomeHeader';
 // WorldScene is already an organism - re-export for convenience
 export { WorldScene } from '../world';

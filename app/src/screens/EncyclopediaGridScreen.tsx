@@ -4,11 +4,12 @@
  * Shows dish cards filtered by category or favorites.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View, useWindowDimensions, ScrollView } from 'react-native';
 import {
   useNavigation,
   useRoute,
+  useFocusEffect,
   type NavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
@@ -26,6 +27,7 @@ import { useGridColumns, useResponsiveLayout } from '../hooks';
 import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
 import { ENCYCLOPEDIA_CATALOG, type EncyclopediaEntry } from '../features/archive/data/encyclopediaCatalog';
 import { favoritesRepo } from '../repositories';
+import { getMenuIdByTitle } from '../data/menuCatalog';
 
 const SKELETON_COUNT = 6;
 
@@ -39,6 +41,8 @@ export const EncyclopediaGridScreen: React.FC = () => {
 
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const reopenOnFocusRef = useRef(false);
+  const lastSelectedCardRef = useRef<DishCard | null>(null);
 
   const { cards, isLoading, showSkeleton, refetch } = useArchiveCards();
   const { mode, category, title, openCardId } = route.params;
@@ -140,6 +144,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
     if (item.card) {
       setSelectedCard(item.card);
       setIsModalVisible(true);
+      lastSelectedCardRef.current = item.card;
       return;
     }
 
@@ -151,13 +156,25 @@ export const EncyclopediaGridScreen: React.FC = () => {
     };
     setSelectedCard(placeholderCard);
     setIsModalVisible(true);
+    lastSelectedCardRef.current = placeholderCard;
   }, []);
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback((preserveCard?: boolean) => {
     setIsModalVisible(false);
-    setTimeout(() => setSelectedCard(null), 300);
+    if (!preserveCard) {
+      setTimeout(() => setSelectedCard(null), 300);
+      lastSelectedCardRef.current = null;
+    }
     refetch();
   }, [refetch]);
+
+  const handleOpenRecipe = useCallback((card: DishCard) => {
+    reopenOnFocusRef.current = true;
+    lastSelectedCardRef.current = card;
+    handleCloseModal(true);
+    const menuId = getMenuIdByTitle(card.title);
+    navigation.navigate('Recipe', { title: card.title, menuId });
+  }, [handleCloseModal, navigation]);
 
   const handleToggleFavorite = useCallback(
     async (cardId: string, isFavorite: boolean) => {
@@ -171,6 +188,17 @@ export const EncyclopediaGridScreen: React.FC = () => {
       refetch();
     },
     [refetch]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (reopenOnFocusRef.current && lastSelectedCardRef.current) {
+        setSelectedCard(lastSelectedCardRef.current);
+        setIsModalVisible(true);
+        reopenOnFocusRef.current = false;
+      }
+      return undefined;
+    }, [])
   );
 
   // Generate styles with responsive values
@@ -313,7 +341,8 @@ export const EncyclopediaGridScreen: React.FC = () => {
       <RecipeDetailModal
         visible={isModalVisible}
         card={selectedCard}
-        onClose={handleCloseModal}
+        onClose={() => handleCloseModal(false)}
+        onOpenRecipe={handleOpenRecipe}
         onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>

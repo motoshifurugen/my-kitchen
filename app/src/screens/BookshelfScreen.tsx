@@ -5,9 +5,9 @@
  * bookshelf log entry, and a light anniversary highlight.
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, type NavigationProp } from '@react-navigation/native';
 import { AppShell } from '../components/templates';
 import { HeaderBar, EmptyStateBlock, RecipeDetailModal } from '../components/organisms';
 import { AppImage, Icon, PressableBase, Surface, Text } from '../components/atoms';
@@ -18,6 +18,7 @@ import { useArchiveCards, sortCardsByDate, type DishCard } from '../features/arc
 import type { DishCategory } from '../features/archive';
 import { ENCYCLOPEDIA_CATALOG } from '../features/archive/data/encyclopediaCatalog';
 import { favoritesRepo } from '../repositories';
+import { getMenuIdByTitle } from '../data/menuCatalog';
 
 const ENCYCLOPEDIA_CATEGORIES = [
   { id: 'soup', label: '汁もの', hint: '湯気のある時間' },
@@ -45,6 +46,8 @@ export const BookshelfScreen: React.FC = () => {
   const { pagePaddingX, contentMaxWidth, shouldCenterContent } = useResponsiveLayout();
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const reopenOnFocusRef = useRef(false);
+  const lastSelectedCardRef = useRef<DishCard | null>(null);
 
   // Get representative menu icon for each category
   const categoryIcons = useMemo(() => {
@@ -112,13 +115,25 @@ export const BookshelfScreen: React.FC = () => {
     if (!anniversaryCard) return;
     setSelectedCard(anniversaryCard);
     setIsModalVisible(true);
+    lastSelectedCardRef.current = anniversaryCard;
   }, [anniversaryCard]);
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback((preserveCard?: boolean) => {
     setIsModalVisible(false);
-    setTimeout(() => setSelectedCard(null), 300);
+    if (!preserveCard) {
+      setTimeout(() => setSelectedCard(null), 300);
+      lastSelectedCardRef.current = null;
+    }
     refetch();
   }, [refetch]);
+
+  const handleOpenRecipe = useCallback((card: DishCard) => {
+    reopenOnFocusRef.current = true;
+    lastSelectedCardRef.current = card;
+    handleCloseModal(true);
+    const menuId = getMenuIdByTitle(card.title);
+    navigation.navigate('Recipe', { title: card.title, menuId });
+  }, [handleCloseModal, navigation]);
 
   const handleToggleFavorite = useCallback(
     async (cardId: string, isFavorite: boolean) => {
@@ -132,6 +147,17 @@ export const BookshelfScreen: React.FC = () => {
       refetch();
     },
     [refetch]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (reopenOnFocusRef.current && lastSelectedCardRef.current) {
+        setSelectedCard(lastSelectedCardRef.current);
+        setIsModalVisible(true);
+        reopenOnFocusRef.current = false;
+      }
+      return undefined;
+    }, [])
   );
 
   return (
@@ -289,7 +315,8 @@ export const BookshelfScreen: React.FC = () => {
       <RecipeDetailModal
         visible={isModalVisible}
         card={selectedCard}
-        onClose={handleCloseModal}
+        onClose={() => handleCloseModal(false)}
+        onOpenRecipe={handleOpenRecipe}
         onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>

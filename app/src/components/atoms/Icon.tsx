@@ -36,7 +36,13 @@ export type IconName =
   | 'DotsThree'
   | 'Info'
   | 'Warning'
-  | 'WarningCircle';
+  | 'WarningCircle'
+  | 'Knife'
+  | 'Fire'
+  | 'Sparkle'
+  | 'Sun'
+  | 'SunHorizon'
+  | 'MoonStars';
 
 type IconWeight = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone';
 

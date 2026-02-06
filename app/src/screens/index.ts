@@ -9,3 +9,4 @@ export { SettingsScreen } from './SettingsScreen';
 export { BookshelfScreen } from './BookshelfScreen';
 export { EncyclopediaGridScreen } from './EncyclopediaGridScreen';
 export { BookshelfLogScreen } from './BookshelfLogScreen';
+export { RecipeScreen } from './RecipeScreen';

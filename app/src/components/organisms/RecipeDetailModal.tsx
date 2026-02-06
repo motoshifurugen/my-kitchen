@@ -46,9 +46,7 @@ const MODAL_MAX_HEIGHT = SCREEN_HEIGHT * 0.85;
 // Menu icon display size in modal (larger than grid for visibility)
 const MENU_ICON_SIZE = 80;
 
-// TODO: Replace with dedicated _fallback@2x.webp asset
-// See: app/assets/menu-icons/_fallback@2x.webp
-const FALLBACK_ICON = MENU_ICONS.menu_onigiri;
+const FALLBACK_ICON = MENU_ICONS.menu_no_image;
 
 // Animation config
 const ANIMATION_DURATION = 250;
@@ -60,6 +58,8 @@ export interface RecipeDetailModalProps {
   card: DishCard | null;
   /** Close handler */
   onClose: () => void;
+  /** Recipe open handler */
+  onOpenRecipe?: (card: DishCard) => void;
   /** Favorite toggle handler (optimistic UI) */
   onToggleFavorite?: (cardId: string, isFavorite: boolean) => void;
 }
@@ -68,6 +68,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   visible,
   card,
   onClose,
+  onOpenRecipe,
   onToggleFavorite,
 }) => {
   const insets = useSafeAreaInsets();
@@ -207,9 +208,9 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
     onToggleFavorite?.(card.id, nextValue);
   };
 
-  // TODO: Wire to recipe screen navigation or external URL
   const handleRecipePress = () => {
-    // no-op placeholder
+    if (!card) return;
+    onOpenRecipe?.(card);
   };
 
   // --- Log row rendering ---

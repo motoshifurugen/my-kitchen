@@ -13,6 +13,8 @@ export type MenuItem = {
   icon: (typeof MENU_ICONS)[keyof typeof MENU_ICONS];
 };
 
+export const MENU_FALLBACK_KEY: keyof typeof MENU_ICONS = 'menu_no_image';
+
 const LABELS: Record<keyof typeof MENU_ICONS, string> = {
   menu_chilled_tofu: '冷奴',
   menu_curry_rice: 'カレーライス',
@@ -41,19 +43,24 @@ const LABELS: Record<keyof typeof MENU_ICONS, string> = {
   menu_tonkatsu: 'とんかつ',
   menu_udon: 'うどん',
   menu_yakisoba: '焼きそば',
+  menu_no_image: '画像なし',
 };
 
-export const MENU_CATALOG: MenuItem[] = Object.entries(MENU_ICONS).map(
-  ([id, icon]) => ({
+export const MENU_CATALOG: MenuItem[] = Object.entries(MENU_ICONS)
+  .filter(([id]) => id !== MENU_FALLBACK_KEY)
+  .map(([id, icon]) => ({
     id: id as keyof typeof MENU_ICONS,
     label: LABELS[id as keyof typeof MENU_ICONS],
     icon,
-  })
-);
+  }));
 
 // Pre-built lookup by label for O(1) access
 const iconByLabel = new Map<string, MenuItem['icon']>(
   MENU_CATALOG.map((item) => [item.label, item.icon])
+);
+
+const idByLabel = new Map<string, MenuItem['id']>(
+  MENU_CATALOG.map((item) => [item.label, item.id])
 );
 
 /**
@@ -62,4 +69,12 @@ const iconByLabel = new Map<string, MenuItem['icon']>(
  */
 export function getMenuIconSource(title: string): MenuItem['icon'] | null {
   return iconByLabel.get(title) ?? null;
+}
+
+/**
+ * Look up menu key by dish title (Japanese label).
+ * Returns null if no matching menu item found.
+ */
+export function getMenuIdByTitle(title: string): MenuItem['id'] | null {
+  return idByLabel.get(title) ?? null;
 }

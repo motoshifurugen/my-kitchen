@@ -5,7 +5,7 @@
  * World is visible but blurred in the background.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { StyleSheet, View, ScrollView, FlatList, useWindowDimensions } from 'react-native';
 import { Text, PressableBase } from '../components/atoms';
 import { DishCardItem, DishCardSkeleton, getCardDimensions } from '../components/molecules';
@@ -21,6 +21,9 @@ import {
 } from '../features/archive';
 import { useGridColumns } from '../hooks';
 import { favoritesRepo } from '../repositories';
+import { useNavigation, useFocusEffect, type NavigationProp } from '@react-navigation/native';
+import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
+import { getMenuIdByTitle } from '../data/menuCatalog';
 
 type TabType = 'timeline' | 'category';
 
@@ -37,6 +40,7 @@ const CATEGORY_TABS: DishCategory[] = [
 const SKELETON_COUNT = 6;
 
 export const ShelfScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp<ShelfStackParamList>>();
   const { width: screenWidth } = useWindowDimensions();
   const columns = useGridColumns();
   const { cardWidth, cardHeight } = getCardDimensions(screenWidth, columns);
@@ -45,6 +49,8 @@ export const ShelfScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<DishCategory | null>(null);
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const reopenOnFocusRef = useRef(false);
+  const lastSelectedCardRef = useRef<DishCard | null>(null);
 
   const { cards, isLoading, showSkeleton, refetch } = useArchiveCards();
   const filteredCards = useFilteredCards(cards, {
@@ -55,13 +61,25 @@ export const ShelfScreen: React.FC = () => {
   const handleCardPress = useCallback((card: DishCard) => {
     setSelectedCard(card);
     setIsModalVisible(true);
+    lastSelectedCardRef.current = card;
   }, []);
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback((preserveCard?: boolean) => {
     setIsModalVisible(false);
-    setTimeout(() => setSelectedCard(null), 300);
+    if (!preserveCard) {
+      setTimeout(() => setSelectedCard(null), 300);
+      lastSelectedCardRef.current = null;
+    }
     refetch();
   }, [refetch]);
+
+  const handleOpenRecipe = useCallback((card: DishCard) => {
+    reopenOnFocusRef.current = true;
+    lastSelectedCardRef.current = card;
+    handleCloseModal(true);
+    const menuId = getMenuIdByTitle(card.title);
+    navigation.navigate('Recipe', { title: card.title, menuId });
+  }, [handleCloseModal, navigation]);
 
   const handleToggleFavorite = useCallback(
     async (cardId: string, isFavorite: boolean) => {
@@ -75,6 +93,17 @@ export const ShelfScreen: React.FC = () => {
       refetch();
     },
     [refetch]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (reopenOnFocusRef.current && lastSelectedCardRef.current) {
+        setSelectedCard(lastSelectedCardRef.current);
+        setIsModalVisible(true);
+        reopenOnFocusRef.current = false;
+      }
+      return undefined;
+    }, [])
   );
 
   const renderCard = useCallback(
@@ -234,7 +263,8 @@ export const ShelfScreen: React.FC = () => {
       <RecipeDetailModal
         visible={isModalVisible}
         card={selectedCard}
-        onClose={handleCloseModal}
+        onClose={() => handleCloseModal(false)}
+        onOpenRecipe={handleOpenRecipe}
         onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>

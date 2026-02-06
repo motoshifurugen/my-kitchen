@@ -114,15 +114,7 @@ export function useArchiveCards(): UseArchiveCardsResult {
 
   // Initial data load on mount
   useEffect(() => {
-    let skeletonTimer: NodeJS.Timeout | undefined;
     let isMounted = true;
-
-    // Start skeleton timer
-    skeletonTimer = setTimeout(() => {
-      if (isMounted && isLoading) {
-        setShowSkeleton(true);
-      }
-    }, SKELETON_DELAY);
 
     const loadInitialData = async () => {
       if (!isMounted) return;
@@ -133,11 +125,27 @@ export function useArchiveCards(): UseArchiveCardsResult {
 
     return () => {
       isMounted = false;
+    };
+  }, [fetchCards]);
+
+  // Skeleton timer tied to loading state
+  useEffect(() => {
+    let skeletonTimer: NodeJS.Timeout | undefined;
+
+    if (isLoading) {
+      skeletonTimer = setTimeout(() => {
+        setShowSkeleton(true);
+      }, SKELETON_DELAY);
+    } else {
+      setShowSkeleton(false);
+    }
+
+    return () => {
       if (skeletonTimer) {
         clearTimeout(skeletonTimer);
       }
     };
-  }, [fetchCards]);
+  }, [isLoading]);
 
   useFocusEffect(
     useCallback(() => {
