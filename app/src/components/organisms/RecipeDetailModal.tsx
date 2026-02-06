@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton, Chip } from '../molecules';
-import { Text, AppImage } from '../atoms';
+import { Text, AppImage, PressableBase } from '../atoms';
 import { useIsReducedMotion } from '../../hooks/useReducedMotion';
 import { colors, radius, spacing, size, shadow } from '../../tokens';
 import { DishCard } from '../../features/archive/types';

@@ -275,9 +275,9 @@ flowchart TD
 | Footer遷移 | Crossfade 200ms | Footer間の移動 |
 | 階層下降 | Slide Right 250ms | 棚 → 詳細 |
 | 階層上昇 | Slide Left 250ms | 詳細 → 棚 |
-| オーバーレイ | Slide Up 300ms | 記録フロー開始 |
+| オーバーレイ | Slide Up 350ms | 記録フロー開始 |
 | モーダル | Scale + Fade 250ms | 詳細カード表示 |
-| 完了 | Slide Down 300ms | 記録フロー完了 |
+| 完了 | Slide Down 350ms | 記録フロー完了 |
 
 ---
 
@@ -323,7 +323,7 @@ flowchart LR
 ```
 [S-01 トップ]
   ↓ Footer「記録」タップ
-[S-04 Overlay] Slide Up from bottom (300ms, ease-out)
+[S-04 Overlay] Slide Up from bottom (350ms, ease-out)
   - World: blur(20px) へ遷移
   - Footer: 非表示
 ```
@@ -333,7 +333,7 @@ flowchart LR
 ```
 [S-04a 写真]
   ↓ キャンセルタップ
-[S-01 トップ] Slide Down (300ms, ease-out)
+[S-01 トップ] Slide Down (350ms, ease-out)
   - World: blur解除
   - Footer: 再表示
   - 世界の中断を最小化

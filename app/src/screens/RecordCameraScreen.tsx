@@ -13,6 +13,7 @@ import { Button, IconButton } from '../components/molecules';
 import { PressableBase, Text } from '../components/atoms';
 import { theme } from '../tokens';
 import type { RecordStackParamList } from '../navigation/RecordNavigator';
+import type { RootStackParamList } from '../navigation/MainNavigator';
 
 export const RecordCameraScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RecordStackParamList>>();
@@ -77,6 +78,7 @@ export const RecordCameraScreen: React.FC = () => {
         style={styles.camera}
         facing="back"
         onCameraReady={() => setIsCameraReady(true)}
+        pointerEvents="none"
       />
 
       <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>

@@ -27,6 +27,8 @@ export interface HeaderBarProps {
   rightAccessibilityLabel?: string;
   /** Transparent background (for overlay on world) */
   transparent?: boolean;
+  /** Custom background color (overrides transparent) */
+  backgroundColor?: string;
   /** Center the title (default: true when no back button) */
   centerTitle?: boolean;
 }
@@ -39,6 +41,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onRightPress,
   rightAccessibilityLabel,
   transparent = false,
+  backgroundColor,
   centerTitle,
 }) => {
   const insets = useSafeAreaInsets();
@@ -46,18 +49,24 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   // Default: center title when no back button
   const shouldCenterTitle = centerTitle ?? !showBack;
 
+  const getBackgroundColor = () => {
+    if (backgroundColor) return backgroundColor;
+    if (transparent) return 'transparent';
+    return colors.background.primary;
+  };
+
   const containerStyle: ViewStyle = {
     paddingTop: insets.top + spacing.sm,
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.screen.horizontal,
-    backgroundColor: transparent ? 'transparent' : colors.background.primary,
+    backgroundColor: getBackgroundColor(),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   };
 
   return (
-    <View style={containerStyle}>
+    <View style={[containerStyle, styles.elevated]} pointerEvents="box-none">
       {/* Left slot */}
       <View style={styles.sideSlot}>
         {showBack && onBack && (
@@ -97,6 +106,10 @@ const styles = StyleSheet.create({
     width: size.tap.recommended,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  elevated: {
+    zIndex: 10,
+    elevation: 10,
   },
   titleContainer: {
     flex: 1,

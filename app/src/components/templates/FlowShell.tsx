@@ -19,6 +19,8 @@ export interface FlowShellProps {
   children: React.ReactNode;
   /** Show blurred world background */
   showWorldBackground?: boolean;
+  /** Background color (overrides default when showWorldBackground is false) */
+  backgroundColor?: string;
   /** Make content scrollable */
   scrollable?: boolean;
   /** Avoid keyboard (for forms) */
@@ -29,6 +31,7 @@ export const FlowShell: React.FC<FlowShellProps> = ({
   header,
   children,
   showWorldBackground = true,
+  backgroundColor,
   scrollable = false,
   avoidKeyboard = false,
 }) => {
@@ -43,7 +46,11 @@ export const FlowShell: React.FC<FlowShellProps> = ({
   const content = (
     <>
       {/* Header */}
-      <HeaderBar {...header} transparent={showWorldBackground} />
+      <HeaderBar
+        {...header}
+        transparent={showWorldBackground}
+        backgroundColor={!showWorldBackground && backgroundColor ? backgroundColor : undefined}
+      />
 
       {/* Content */}
       <ContentWrapper style={styles.content} {...contentWrapperProps}>
@@ -52,8 +59,12 @@ export const FlowShell: React.FC<FlowShellProps> = ({
     </>
   );
 
+  const containerStyle = !showWorldBackground && backgroundColor
+    ? [styles.container, { backgroundColor }]
+    : styles.container;
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       {/* World Background */}
       {showWorldBackground && <WorldScene blurred />}
 

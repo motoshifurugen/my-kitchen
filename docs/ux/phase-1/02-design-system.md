@@ -464,6 +464,8 @@ React Native 実装向けの zIndex / elevation 基準値。
 | `duration.feedback.tap` | 100ms | タップフィードバック |
 | `duration.celebration` | 350ms | 記録完了セレブレーション（光の広がり） |
 
+**注:** S-04 記録フロー開始は `duration.slower` (350ms) を使用する。
+
 ### 世界レイヤーデュレーション（アンビエント）
 
 UI遷移の 400ms 制限は適用されない。
@@ -532,7 +534,7 @@ UI遷移の 400ms 制限は適用されない。
 | Footer間ナビゲーション | **Fade のみ** | 200ms | S-01↔S-02↔S-05 等 |
 | 一覧 → 詳細 | **Soft Slide** | 250ms | S-02→S-03、S-05→S-03 |
 | 詳細 → 一覧（戻る） | **Soft Slide（逆方向）** | 250ms | translateX 方向反転 |
-| オーバーレイ表示 | **Overlay（上昇）** | 300ms | S-04記録フロー開始 |
+| オーバーレイ表示 | **Overlay（上昇）** | 300ms | S-04 記録フロー開始のみ 350ms |
 | オーバーレイ閉じる | **Overlay（下降）** | 300ms | キャンセル、完了時 |
 | モーダル表示 | **Scale + Fade** | 250ms | S-03詳細カード |
 | 設定画面遷移 | **Soft Slide** | 250ms | S-01→S-06 |
@@ -574,6 +576,7 @@ opacity: 同時に 0 → 1
 ```
 用途: 記録フロー、詳細モーダル
 duration: duration.transition.overlay (300ms)
+S-04 記録フロー開始のみ: duration.slower (350ms)
 easing: easing.easeOut
 translateY: distance.overlay.raise (20pt) → 0
   または distance.overlay.full (画面下端から)

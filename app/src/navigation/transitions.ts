@@ -138,6 +138,61 @@ export const overlayCardStyleInterpolator: CardStyleInterpolator = ({
   };
 };
 
+/**
+ * Slide up from bottom card style interpolator (full screen)
+ * translateY: screen.height → 0
+ * opacity: 0 → 1
+ * Used for: Record flow entry
+ */
+export const slideUpFromBottomCardStyleInterpolator: CardStyleInterpolator = ({
+  current,
+  layouts,
+}) => {
+  const screenHeight = layouts?.screen?.height ?? 0;
+  return {
+    cardStyle: {
+      opacity: current.progress,
+      transform: [
+        {
+          translateY: current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [screenHeight, 0], // screen height → 0
+          }),
+        },
+      ],
+    },
+  };
+};
+
+/**
+ * Slide down to bottom card style interpolator (full screen)
+ * translateY: 0 → screen.height
+ * opacity: 1 → 0
+ * Used for: Record flow exit
+ */
+export const slideDownToBottomCardStyleInterpolator: CardStyleInterpolator = ({
+  current,
+  layouts,
+}) => {
+  const screenHeight = layouts?.screen?.height ?? 0;
+  return {
+    cardStyle: {
+      opacity: current.progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 0], // 1 → 0
+      }),
+      transform: [
+        {
+          translateY: current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, screenHeight], // 0 → screen height
+          }),
+        },
+      ],
+    },
+  };
+};
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -164,5 +219,21 @@ export const getSoftSlideTransitionConfig = () => ({
 export const getOverlayTransitionConfig = () => ({
   transitionSpec: overlayTransitionSpec,
   cardStyleInterpolator: overlayCardStyleInterpolator,
+});
+
+/**
+ * Get transition config for Slide Up from Bottom (Record flow entry)
+ */
+export const getSlideUpFromBottomTransitionConfig = () => ({
+  transitionSpec: overlayTransitionSpec,
+  cardStyleInterpolator: slideUpFromBottomCardStyleInterpolator,
+});
+
+/**
+ * Get transition config for Slide Down to Bottom (Record flow exit)
+ */
+export const getSlideDownToBottomTransitionConfig = () => ({
+  transitionSpec: overlayTransitionSpec,
+  cardStyleInterpolator: slideDownToBottomCardStyleInterpolator,
 });
 

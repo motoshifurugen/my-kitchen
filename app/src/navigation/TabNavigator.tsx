@@ -15,23 +15,22 @@
  * Note: Home tab included for navigation back to S-01 as per transition matrix.
  */
 
-import React from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import React, { useRef, useCallback } from 'react';
+import { StyleSheet, View, TouchableOpacity, Animated } from 'react-native';
 import {
   createBottomTabNavigator,
   BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HomeScreen,
   SearchScreen,
 } from '../screens';
-import { RecordNavigator } from './RecordNavigator';
+import type { RootStackParamList } from './MainNavigator';
 import { ShelfNavigator } from './ShelfNavigator';
 import { SettingsNavigator } from './SettingsNavigator';
 import { Icon, IconName, Text } from '../components/atoms';
-import { IconButton } from '../components/molecules';
 import { theme, footer as footerTokens } from '../tokens';
 
 // ============================================================================
@@ -71,11 +70,50 @@ const labelMap: Record<keyof RootTabParamList, string> = {
   Settings: '設定',
 };
 
-const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
+const TabIcon: React.FC<TabIconProps> = ({ focused, routeName, onPressIn, onPressOut }) => {
   const isRecord = routeName === 'Record';
   const isHome = routeName === 'Home';
+  const isSettings = routeName === 'Settings';
   const iconName = iconMap[routeName];
   const label = labelMap[routeName];
+
+  // Animated value for scale transform (only for record button)
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Handle press in - scale down slightly (only for record button)
+  const handlePressIn = useCallback(() => {
+    if (isRecord) {
+      Animated.timing(scaleAnim, {
+        toValue: 0.95, // Slightly smaller when pressed
+        duration: duration.feedback.tap, // 100ms
+        easing: easing.feedback,
+        useNativeDriver: true,
+      }).start();
+    }
+    onPressIn?.();
+  }, [scaleAnim, isRecord, onPressIn]);
+
+  // Handle press out - bounce back with slight overshoot (only for record button)
+  const handlePressOut = useCallback(() => {
+    if (isRecord) {
+      // First, scale up slightly (bounce effect)
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05, // Slightly larger for bounce effect
+          duration: duration.feedback.tap * 0.6, // 60ms
+          easing: easing.celebration, // Bouncy easing
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1.0, // Back to normal
+          duration: duration.feedback.tap * 0.8, // 80ms
+          easing: easing.feedback,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    onPressOut?.();
+  }, [scaleAnim, isRecord, onPressOut]);
 
   // Determine icon color based on state
   const iconColor = isRecord
@@ -84,31 +122,46 @@ const TabIcon: React.FC<TabIconProps> = ({ focused, routeName }) => {
       ? theme.colors.accent.primary
       : theme.colors.icon.default;
 
+  const containerStyle = isRecord
+    ? [
+        styles.recordTabContainer,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]
+    : styles.tabIconContainer;
+
+  const ContainerComponent = isRecord ? Animated.View : View;
+
   return (
-    <View
-      style={[
-        isRecord ? styles.recordTabContainer : styles.tabIconContainer,
-      ]}
+    <ContainerComponent
+      style={containerStyle}
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected: focused }}
     >
       <Icon
         name={iconName}
-        size={isRecord ? 28 : 22}
+        size={isRecord ? 32 : 22}
         color={iconColor}
         weight={focused || isRecord ? 'fill' : 'regular'}
       />
-      {!isRecord && !isHome && (
+      {!isHome && !isSettings && (
         <Text
           variant="caption"
-          color={focused ? theme.colors.accent.primary : theme.colors.text.secondary}
+          color={
+            isRecord
+              ? theme.colors.text.inverse
+              : focused
+                ? theme.colors.accent.primary
+                : theme.colors.text.secondary
+          }
           style={styles.tabLabel}
         >
           {label}
         </Text>
       )}
-    </View>
+    </ContainerComponent>
   );
 };
 
@@ -140,12 +193,12 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
         },
       ]}
     >
-      {/* Left half: Home button */}
+      {/* Left: Home button */}
       {homeRoute && (() => {
         const isFocused = state.index === state.routes.findIndex((r) => r.key === homeRoute.key);
         return (
           <TouchableOpacity
-            style={styles.halfSection}
+            style={styles.section}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={labelMap.Home}
@@ -170,9 +223,10 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Center: Record button (circle only) */}
       {recordRoute && (() => {
         const isFocused = state.index === state.routes.findIndex((r) => r.key === recordRoute.key);
+        const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>('RootStack');
         return (
           <TouchableOpacity
-            style={styles.recordButtonContainer}
+            style={styles.section}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={labelMap.Record}
@@ -183,7 +237,12 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
                 canPreventDefault: true,
               });
 
-              if (!isFocused && !event.defaultPrevented) {
+              if (event.defaultPrevented) return;
+              if (rootNavigation) {
+                rootNavigation.navigate('RecordFlow');
+                return;
+              }
+              if (!isFocused) {
                 navigation.navigate(recordRoute.name);
               }
             }}
@@ -194,24 +253,28 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
         );
       })()}
 
-      {/* Right half: Settings button */}
-      <TouchableOpacity
-        style={styles.halfSection}
-        accessibilityRole="button"
-        accessibilityLabel="設定"
-        onPress={() => {
-          // @ts-ignore - navigation type will be set up in TabNavigator
-          navigation.navigate('Settings');
-        }}
-        activeOpacity={0.7}
-      >
-        <IconButton
-          icon="SlidersHorizontal"
-          onPress={() => {}}
-          accessibilityLabel="設定"
-          iconSize={22}
-        />
-      </TouchableOpacity>
+      {/* Right: Settings button */}
+      {(() => {
+        const settingsRoute = state.routes.find((route) => route.name === 'Settings');
+        const isFocused = settingsRoute
+          ? state.index === state.routes.findIndex((r) => r.key === settingsRoute.key)
+          : false;
+        return (
+          <TouchableOpacity
+            style={styles.section}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel="設定"
+            onPress={() => {
+              // @ts-ignore - navigation type will be set up in TabNavigator
+              navigation.navigate('Settings');
+            }}
+            activeOpacity={0.7}
+          >
+            <TabIcon focused={isFocused} routeName="Settings" />
+          </TouchableOpacity>
+        );
+      })()}
     </View>
   );
 };
@@ -222,41 +285,37 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-export const TabNavigator: React.FC = () => {
-  const insets = useSafeAreaInsets();
+const RecordPlaceholderScreen: React.FC = () => {
+  return <View style={styles.placeholder} />;
+};
 
+RecordPlaceholderScreen.displayName = 'RecordPlaceholderScreen';
+
+export const TabNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: {
-            display: 'none', // Hide default tab bar, use custom one
-          },
-        })}
-        tabBar={(props) => <CustomTabBar {...props} />}
-        initialRouteName="Home"
-      >
-        <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Search" component={SearchScreen} />
-        <Tab.Screen
-          name="Record"
-          component={RecordNavigator}
-          options={{
-            tabBarStyle: { display: 'none' },
-          }}
-        />
-        <Tab.Screen name="Shelf" component={ShelfNavigator} />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsNavigator}
-          options={{
-            tabBarButton: () => null, // Hide from tab bar, accessed via footer icon
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          display: 'none', // Hide default tab bar, use custom one
+        },
+      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      initialRouteName="Home"
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Record" component={RecordPlaceholderScreen} />
+      <Tab.Screen name="Shelf" component={ShelfNavigator} />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsNavigator}
+        options={{
+          tabBarButton: () => null, // Hide from tab bar, accessed via footer icon
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
@@ -273,12 +332,14 @@ const styles = StyleSheet.create({
   recordTabContainer: {
     backgroundColor: theme.colors.accent.primary,
     borderRadius: theme.radius.full,
-    width: 72,
-    height: 72,
+    width: 88,
+    minHeight: 88,
     marginTop: -theme.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 0,
+    paddingTop: 4,
+    paddingBottom: 4,
+    gap: 2, // Smaller gap between icon and label
     // Shadow (explicit for Fabric compatibility)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -287,34 +348,21 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   tabLabel: {
-    marginTop: theme.spacing.xs,
+    marginTop: 2, // Smaller margin to match button style
   },
   customTabBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.screen.horizontal,
     paddingTop: theme.spacing.xs,
-    position: 'relative',
   },
-  halfSection: {
+  section: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recordButtonContainer: {
-    position: 'absolute',
-    left: '50%',
-    marginLeft: -36, // Half of button width (72 / 2)
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  tabButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recordButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  placeholder: {
+    flex: 1,
+    backgroundColor: theme.colors.background.primary,
   },
 });

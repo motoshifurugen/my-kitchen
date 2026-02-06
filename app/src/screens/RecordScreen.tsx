@@ -27,7 +27,7 @@ import { Button, IconButton } from '../components/molecules';
 import { AppImage, Icon, PressableBase, Surface, Text } from '../components/atoms';
 import { theme } from '../tokens';
 import type { RecordStackParamList } from '../navigation/RecordNavigator';
-import type { RootTabParamList } from '../navigation/TabNavigator';
+import type { RootStackParamList } from '../navigation/MainNavigator';
 import { MENU_CATALOG } from '../data/menuCatalog';
 import { recordCooking } from '../repositories';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -98,19 +98,27 @@ export const RecordScreen: React.FC = () => {
     }
   }, [route.params?.photoUri]);
 
+  /**
+   * NOTE (Regression Guard):
+   * Record flow is presented as a RootStack modal (MainNavigator).
+   * Do NOT navigate to Tab routes here, or the close animation won't run.
+   * Always close the modal via RootStack goBack().
+   */
   const navigateToHome = useCallback(() => {
-    const parentNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
-    if (parentNavigation) {
-      parentNavigation.navigate('Home');
+    const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>('RootStack');
+    if (rootNavigation?.canGoBack()) {
+      rootNavigation.goBack();
       return;
     }
-    navigation.navigate('RecordSelect');
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   }, [navigation]);
 
   const navigateToSettings = useCallback(() => {
-    const parentNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
-    if (parentNavigation) {
-      parentNavigation.navigate('Settings');
+    const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>('RootStack');
+    if (rootNavigation) {
+      rootNavigation.navigate('MainTabs', { screen: 'Settings' });
     }
   }, [navigation]);
 
@@ -131,25 +139,28 @@ export const RecordScreen: React.FC = () => {
     ]);
   }, []);
 
+  /**
+   * NOTE (Regression Guard):
+   * expo-image-picker v15 changed API:
+   * - PermissionStatus.LIMITED was removed -> use accessPrivileges === 'limited'
+   * - MediaTypeOptions.Images ("Images") is rejected -> use ['images']
+   * Keep this block aligned with v15+ or the button will stop working on iOS.
+   */
   const handlePickFromLibrary = useCallback(async () => {
     try {
       const currentPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
-      const isGranted =
+      const isCurrentGranted =
         currentPermission.granted ||
-        currentPermission.status === ImagePicker.PermissionStatus.GRANTED ||
-        currentPermission.status === ImagePicker.PermissionStatus.LIMITED;
+        currentPermission.accessPrivileges === 'all' ||
+        currentPermission.accessPrivileges === 'limited';
 
-      let permissionGranted = isGranted;
-
+      let permissionGranted = isCurrentGranted;
       if (!permissionGranted) {
-        // Always try to request if not yet granted
-        // On iOS: UNDETERMINED -> shows prompt, DENIED + canAskAgain -> shows prompt
-        // DENIED + !canAskAgain -> returns DENIED without prompt
         const requested = await ImagePicker.requestMediaLibraryPermissionsAsync();
         permissionGranted =
           requested.granted ||
-          requested.status === ImagePicker.PermissionStatus.GRANTED ||
-          requested.status === ImagePicker.PermissionStatus.LIMITED;
+          requested.accessPrivileges === 'all' ||
+          requested.accessPrivileges === 'limited';
       }
 
       if (!permissionGranted) {
@@ -158,7 +169,7 @@ export const RecordScreen: React.FC = () => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'] as unknown as ImagePicker.MediaTypeOptions,
         allowsEditing: false,
         quality: 1,
       });
@@ -168,9 +179,7 @@ export const RecordScreen: React.FC = () => {
       if (asset?.uri) {
         setPhotoUri(asset.uri);
       }
-    } catch (error) {
-      // Log error for debugging, but show user-friendly message
-      console.warn('[RecordScreen] Photo library error:', error);
+    } catch {
       showPhotoAccessAlert();
     }
   }, [showPhotoAccessAlert]);
@@ -255,7 +264,8 @@ export const RecordScreen: React.FC = () => {
         onRightPress: navigateToHome,
         rightAccessibilityLabel: 'やめる',
       }}
-      showWorldBackground
+      showWorldBackground={false}
+      backgroundColor="#E5D4C8"
       avoidKeyboard
     >
       <ScrollView
@@ -303,7 +313,7 @@ export const RecordScreen: React.FC = () => {
                 label="ライブラリから選ぶ"
                 iconLeft="Image"
                 variant="secondary"
-                size="lg"
+                size="md"
                 fullWidth
                 onPress={handlePickFromLibrary}
               />
@@ -314,6 +324,7 @@ export const RecordScreen: React.FC = () => {
                   size="sm"
                   fullWidth
                   onPress={handleClearPhoto}
+                  style={styles.deleteButton}
                 />
               )}
             </View>
@@ -413,6 +424,7 @@ export const RecordScreen: React.FC = () => {
 
             <Button
               label="図鑑に加える"
+              iconLeft="Books"
               variant="primary"
               fullWidth
               onPress={handleSave}
@@ -538,8 +550,11 @@ const styles = StyleSheet.create({
   },
   libraryCell: {
     flex: 1,
-    gap: theme.spacing.sm,
+    gap: 0,
     justifyContent: 'space-between',
+  },
+  deleteButton: {
+    marginTop: -theme.spacing.xs,
   },
   photoArea: {
     alignItems: 'center',

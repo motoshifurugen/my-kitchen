@@ -49,7 +49,7 @@ export type RecordInput = {
   photoUri?: string | null;
 };
 
-export const recordCooking = async (input: RecordInput) => {
+export const recordCooking = async (input: RecordInput): Promise<{ recipeId: string }> => {
   const cookedAt = nowIso();
   const recipe = await resolveRecipeId(input.title);
 
@@ -99,4 +99,6 @@ export const recordCooking = async (input: RecordInput) => {
       meta: JSON.stringify({ from: previousGrade, to: nextGrade }),
     });
   }
+
+  return { recipeId: recipe.id };
 };

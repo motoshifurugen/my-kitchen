@@ -56,30 +56,38 @@ export const EncyclopediaGridScreen: React.FC = () => {
 
   const gridItems = useMemo(() => {
     if (mode === 'favorite') {
+      // For favorites, only show cards that are favorited
       return cards
         .filter((card) => card.isFavorite)
-        .map((card) => ({
-          id: card.id,
-          title: card.title,
-          icon: catalogByTitle.get(card.title)?.icon,
-          card,
-          isEmpty: false,
-        }))
+        .map((card) => {
+          const catalogEntry = catalogByTitle.get(card.title);
+          return {
+            id: card.id,
+            title: card.title,
+            icon: catalogEntry?.icon,
+            card,
+            isEmpty: false,
+          };
+        })
         .sort(sortByKana);
     }
 
     if (mode === 'all') {
-      return cards
-        .map((card) => ({
-          id: card.id,
-          title: card.title,
-          icon: catalogByTitle.get(card.title)?.icon,
+      // For 'all' mode, show all encyclopedia entries (unlocked state)
+      const entries = ENCYCLOPEDIA_CATALOG;
+      return entries.map((entry: EncyclopediaEntry) => {
+        const card = cardsByTitle.get(entry.title);
+        return {
+          id: entry.id,
+          title: entry.title,
+          icon: entry.icon,
           card,
-          isEmpty: false,
-        }))
-        .sort(sortByKana);
+          isEmpty: !card,
+        };
+      });
     }
 
+    // Category mode: show entries for the specific category
     const targetCategory: DishCategory | null = category ?? null;
     const entries = ENCYCLOPEDIA_CATALOG.filter(
       (entry) => !targetCategory || entry.category === targetCategory
@@ -95,7 +103,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
         isEmpty: !card,
       };
     });
-  }, [cardsByTitle, category, mode, sortByKana]);
+  }, [cardsByTitle, catalogByTitle, category, mode, sortByKana]);
 
   useEffect(() => {
     if (!openCardId) return;
@@ -193,7 +201,6 @@ export const EncyclopediaGridScreen: React.FC = () => {
     >
       <View style={styles.contentContainer}>
         {showSkeleton && renderSkeletonGrid()}
-        {!showSkeleton && !isLoading && gridItems.length === 0 && renderEmptyState()}
         {!showSkeleton && gridItems.length > 0 && (
           <FlatList
             data={gridItems}
@@ -206,6 +213,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
           />
         )}
+        {!showSkeleton && !isLoading && gridItems.length === 0 && mode === 'favorite' && renderEmptyState()}
       </View>
 
       <RecipeDetailModal

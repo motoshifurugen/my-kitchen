@@ -16,6 +16,7 @@ import { theme } from '../tokens';
 import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
 import { useArchiveCards, sortCardsByDate, type DishCard } from '../features/archive';
 import type { DishCategory } from '../features/archive';
+import { ENCYCLOPEDIA_CATALOG } from '../features/archive/data/encyclopediaCatalog';
 
 const ENCYCLOPEDIA_CATEGORIES = [
   { id: 'soup', label: '汁もの', hint: '湯気のある時間' },
@@ -43,6 +44,30 @@ export const BookshelfScreen: React.FC = () => {
   const { pagePaddingX, contentMaxWidth, shouldCenterContent } = useResponsiveLayout();
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // Get representative menu icon for each category
+  const categoryIcons = useMemo(() => {
+    const icons: Record<DishCategory, typeof ENCYCLOPEDIA_CATALOG[0]['icon'] | null> = {
+      soup: null,
+      fry: null,
+      grillBake: null,
+      noodleRice: null,
+      dessertSalad: null,
+      other: null,
+    };
+
+    encyclopediaCategories.forEach((category) => {
+      const categoryMenus = ENCYCLOPEDIA_CATALOG.filter(
+        (entry) => entry.category === category.id
+      );
+      if (categoryMenus.length > 0) {
+        // Use the first menu as representative (sorted by kana)
+        icons[category.id] = categoryMenus[0].icon;
+      }
+    });
+
+    return icons;
+  }, []);
 
   const anniversaryCard = useMemo(() => {
     if (cards.length === 0) return null;
@@ -111,27 +136,40 @@ export const BookshelfScreen: React.FC = () => {
             図鑑
           </Text>
           <View style={styles.encyclopediaGrid}>
-            {encyclopediaCategories.map((category) => (
-              <PressableBase
-                key={category.id}
-                style={({ pressed }) => [
-                  styles.encyclopediaCard,
-                  pressed && styles.encyclopediaPressed,
-                ]}
-                onPress={() => handleOpenCategory(category.id, category.label)}
-                accessibilityLabel={category.label}
-              >
-                <Surface rounded="md" padding="sm" style={styles.encyclopediaSurface}>
-                  <Icon name="Books" size={22} color={theme.colors.icon.default} />
-                  <View style={styles.encyclopediaText}>
-                    <Text variant="body">{category.label}</Text>
-                    <Text variant="caption" style={styles.encyclopediaHint}>
-                      {category.hint}
-                    </Text>
-                  </View>
-                </Surface>
-              </PressableBase>
-            ))}
+            {encyclopediaCategories.map((category) => {
+              const categoryIcon = categoryIcons[category.id];
+              return (
+                <PressableBase
+                  key={category.id}
+                  style={({ pressed }) => [
+                    styles.encyclopediaCard,
+                    pressed && styles.encyclopediaPressed,
+                  ]}
+                  onPress={() => handleOpenCategory(category.id, category.label)}
+                  accessibilityLabel={category.label}
+                >
+                  <Surface rounded="md" padding="sm" style={styles.encyclopediaSurface}>
+                    {categoryIcon ? (
+                      <AppImage
+                        source={categoryIcon}
+                        width={22}
+                        height={22}
+                        rounded="sm"
+                        accessibilityLabel={category.label}
+                      />
+                    ) : (
+                      <Icon name="Books" size={22} color={theme.colors.icon.default} />
+                    )}
+                    <View style={styles.encyclopediaText}>
+                      <Text variant="body">{category.label}</Text>
+                      <Text variant="caption" style={styles.encyclopediaHint}>
+                        {category.hint}
+                      </Text>
+                    </View>
+                  </Surface>
+                </PressableBase>
+              );
+            })}
           </View>
         </View>
 

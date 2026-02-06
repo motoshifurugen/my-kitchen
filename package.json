@@ -5,6 +5,7 @@
   },
   "scripts": {
     "assets": "node scripts/generate-assets.mjs",
-    "assets:menu": "node scripts/generate-assets.mjs --group menu"
+    "assets:menu": "node scripts/generate-assets.mjs --group menu",
+    "assets:bg": "node scripts/generate-assets.mjs --group backgrounds"
   }
 }

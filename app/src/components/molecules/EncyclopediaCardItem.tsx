@@ -54,6 +54,10 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
 
   const gradeLevel = getGradeLevel(cookCount);
   const accessibilityLabel = `${title}、${gradeLabelText(gradeLevel, isEmpty)}`;
+  
+  // Show icon as silhouette (reduced opacity) if empty (unlocked but not cooked)
+  const showIconSilhouette = isEmpty && icon;
+  const showIcon = !isEmpty && icon;
 
   return (
     <PressableBase
@@ -63,8 +67,12 @@ export const EncyclopediaCardItem: React.FC<EncyclopediaCardItemProps> = ({
       accessibilityRole="button"
     >
       <View style={styles.iconContainer}>
-        {icon ? (
+        {showIcon ? (
           <AppImage source={icon} width={40} height={40} rounded="md" />
+        ) : showIconSilhouette ? (
+          <View style={styles.iconSilhouetteContainer}>
+            <AppImage source={icon} width={40} height={40} rounded="md" />
+          </View>
         ) : (
           <View style={styles.iconPlaceholder} />
         )}
@@ -119,6 +127,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: radius.md,
     backgroundColor: colors.surface.pressed,
+  },
+  iconSilhouetteContainer: {
+    width: 40,
+    height: 40,
+    opacity: 0.3,
   },
   info: {
     padding: spacing.sm,

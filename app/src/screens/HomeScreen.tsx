@@ -5,13 +5,15 @@
  * the 2.5D kitchen scene with ambient animations.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Switch,
   Animated,
+  Pressable,
+  ViewStyle,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +21,7 @@ import { WorldScene } from '../components/world';
 import { Text, PressableBase, Icon, IconName } from '../components/atoms';
 import { Text as UIText } from '../components/ui';
 import { Chip } from '../components/molecules';
-import { theme, footer as footerTokens, duration, easing } from '../tokens';
+import { theme, footer as footerTokens, duration, easing, scale } from '../tokens';
 import {
   useWorldSignals,
   TIME_ORDER,
@@ -185,20 +187,77 @@ const LargeRoundedButton: React.FC<LargeRoundedButtonProps> = ({
   onPress,
   accessibilityLabel,
 }) => {
+  // Animated value for scale transform
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Handle press in - scale down slightly
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.95, // Slightly smaller when pressed
+      duration: duration.feedback.tap, // 100ms
+      easing: easing.feedback,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  // Handle press out - bounce back with slight overshoot
+  const handlePressOut = useCallback(() => {
+    // First, scale up slightly (bounce effect)
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 1.05, // Slightly larger for bounce effect
+        duration: duration.feedback.tap * 0.6, // 60ms
+        easing: easing.celebration, // Bouncy easing
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1.0, // Back to normal
+        duration: duration.feedback.tap * 0.8, // 80ms
+        easing: easing.feedback,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim]);
+
+  // Compute style based on pressed state
+  const getButtonStyle = useCallback(
+    ({ pressed }: { pressed: boolean }): ViewStyle => {
+      return {
+        ...styles.largeButton,
+        backgroundColor: pressed
+          ? '#D18A60' // Lighter orange when pressed (brighter than #C17A50)
+          : theme.colors.accent.primary, // #C17A50 default
+      };
+    },
+    []
+  );
+
   return (
-    <PressableBase
-      style={styles.largeButton}
-      onPress={onPress}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
+    <Animated.View
+      style={{
+        width: 88,
+        height: 88,
+        transform: [{ scale: scaleAnim }],
+        marginBottom: 0,
+        paddingBottom: 0,
+      }}
     >
-      <View style={styles.largeButtonContent}>
-        <Icon name={icon} size={32} color={theme.colors.text.primary} weight="fill" />
-        <UIText size="md" weight="medium" color={theme.colors.text.primary} style={styles.largeButtonLabel}>
-          {label}
-        </UIText>
-      </View>
-    </PressableBase>
+      <Pressable
+        style={getButtonStyle}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+      >
+        <View style={styles.largeButtonContent}>
+          <Icon name={icon} size={32} color={theme.colors.text.inverse} weight="fill" />
+          <Text variant="caption" color={theme.colors.text.inverse} style={styles.largeButtonLabel}>
+            {label}
+          </Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -236,8 +295,8 @@ export const HomeScreen: React.FC = () => {
   }, [hasAnimated, fadeAnim]);
 
   // Calculate button container position (above footer)
+  // Position buttons so their bottom edge aligns with footer top
   const footerHeight = footerTokens.height + insets.bottom;
-  const buttonContainerBottom = footerHeight + theme.spacing.lg;
 
   return (
     <View style={styles.container}>
@@ -271,12 +330,13 @@ export const HomeScreen: React.FC = () => {
       )}
 
       {/* Large Rounded Buttons: Shelf and Search */}
+      {/* Issue #148: Position directly above footer without extra padding */}
       <View
         style={[
           styles.buttonContainer,
           {
-            bottom: buttonContainerBottom,
-            paddingBottom: theme.spacing.lg,
+            bottom: footerHeight + 16, // Move buttons up by 16pt
+            marginBottom: -80, // Negative margin to move buttons down to footer top
           },
         ]}
       >
@@ -341,16 +401,17 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     gap: theme.spacing.md,
     paddingHorizontal: theme.spacing.screen.horizontal,
+    paddingBottom: 0,
+    marginBottom: 0,
   },
   largeButton: {
-    flex: 1,
-    maxWidth: 160,
-    minHeight: 80,
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: theme.radius.xl,
+    width: 88,
+    height: 88,
+    backgroundColor: theme.colors.accent.primary, // #C17A50 same as record button
+    borderRadius: theme.radius.full, // Circle
     ...theme.shadow.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -358,10 +419,10 @@ const styles = StyleSheet.create({
   largeButtonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.xs,
+    gap: 2, // Smaller gap between icon and label
   },
   largeButtonLabel: {
-    marginTop: theme.spacing.xs,
+    marginTop: 2, // Smaller margin to match record button style
   },
   devToggleButton: {
     position: 'absolute',

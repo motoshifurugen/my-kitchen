@@ -11,7 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TabNavigator, OnboardingNavigator } from './src/navigation';
+import { MainNavigator, OnboardingNavigator } from './src/navigation';
 import { useWorldSignalsUpdater } from './src/hooks';
 import { usePreload } from './src/utils/preload';
 import { theme } from './src/tokens';
@@ -158,7 +158,7 @@ const AppContent: React.FC = () => {
     return (
       <>
         <StatusBar style="dark" />
-        <TabNavigator />
+        <MainNavigator />
       </>
     );
   }

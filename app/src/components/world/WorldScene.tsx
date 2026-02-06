@@ -139,6 +139,7 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
   return (
     <View
       style={styles.container}
+      pointerEvents="none"
       accessible={false}
       accessibilityElementsHidden={true}
       importantForAccessibility="no-hide-descendants"
@@ -194,6 +195,7 @@ export const WorldScene: React.FC<WorldSceneProps> = ({
               opacity: blurAnim,
             },
           ]}
+          pointerEvents="none"
         >
           <BlurView
             intensity={BLUR_INTENSITY}

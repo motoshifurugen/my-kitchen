@@ -30,6 +30,12 @@ const ASSET_GROUPS = {
     manifestKey: 'MENU_ICONS',
     manifestPath: 'app/src/assets/manifest.ts',
   },
+  backgrounds: {
+    source: 'docs/ux/phase-1/assets/_source/tools/tools_shell__master.png',
+    output: 'app/assets/backgrounds',
+    manifestKey: 'BACKGROUND_ASSETS',
+    manifestPath: 'app/src/assets/manifest.ts',
+  },
 };
 
 // ============================================================================
@@ -131,12 +137,14 @@ function updateManifest(groupConfig, generatedAssets) {
   // Generate the manifest block
   const manifestEntries = Object.entries(generatedAssets)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, assets]) => {
-      // Use @2x for the require path (Metro will auto-select @1x/@2x)
-      const relativePath = relative(
+    .map(([key, assetData]) => {
+      // Use base name without @2x suffix - Metro auto-selects @1x/@2x/@3x variants
+      const rawPath = relative(
         join(projectRoot, 'app/src/assets'),
-        assets['@2x'].path
-      ).replace(/\\/g, '/');
+        assetData['@2x'].path
+      );
+      const relativePath = rawPath.replace(/\\/g, '/').replace(/@2x\.webp$/, '.webp');
+      console.log(`  [DEBUG] Key: ${key}, Raw: ${rawPath}, Final: ${relativePath}`);
       return `  "${key}": require("${relativePath}"),`;
     })
     .join('\n');
@@ -145,14 +153,19 @@ function updateManifest(groupConfig, generatedAssets) {
 
   const fullBlock = `${startMarker}\n${manifestBlock}\n${endMarker}`;
 
+  console.log('[DEBUG] Full block to write:');
+  console.log(fullBlock);
+
   // Check if markers exist
   const hasStartMarker = content.includes(startMarker);
   const hasEndMarker = content.includes(endMarker);
 
   if (hasStartMarker && hasEndMarker) {
     // Replace existing block
+    // Escape regex special characters in markers
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(
-      `${startMarker}[\\s\\S]*?${endMarker}`,
+      `${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}`,
       'g'
     );
     content = content.replace(regex, fullBlock);

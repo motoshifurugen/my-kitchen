@@ -311,3 +311,9 @@ export const MENU_ICONS = {
   "menu_yakisoba": require("../../assets/menu-icons/menu_yakisoba.webp"),
 } as const;
 // END AUTO-GENERATED:MENU_ICONS
+
+// AUTO-GENERATED:BACKGROUND_ASSETS (do not edit)
+export const BACKGROUND_ASSETS = {
+  "tools_shell": require("../../assets/backgrounds/tools_shell.webp"),
+} as const;
+// END AUTO-GENERATED:BACKGROUND_ASSETS
