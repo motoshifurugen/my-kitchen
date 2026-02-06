@@ -4,8 +4,8 @@
  * Shows a gentle completion message and returns to S-01.
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -31,19 +31,29 @@ const CELEBRATION_MESSAGES = [
   '棚に、ひとつ増えました。',
 ];
 
-// Number of confetti particles
-const CONFETTI_COUNT = 20;
+const CONFETTI_COLORS = [
+  '#C17A50',
+  '#7B9E87',
+  '#D4A85A',
+  '#C67B6B',
+  '#E8DFD5',
+];
 
-// Bookshelf position (left side, ~20% from left edge)
-const BOOKSHELF_X_RATIO = 0.2;
+// Number of confetti particles
+const CONFETTI_COUNT = 24;
+
+// Bookshelf position (centered)
+const BOOKSHELF_X_RATIO = 0.5;
+const LIGHT_SIZE = 280;
+const LIGHT_RADIUS = LIGHT_SIZE / 2;
 
 /**
  * Confetti seed for stable random values.
  * Generated once per component mount, not during render.
  */
 interface ConfettiSeed {
-  startXOffset: number;
-  startYOffset: number;
+  startXRatio: number;
+  startYRatio: number;
   endXOffset: number;
   endYOffset: number;
   rotation: number;
@@ -56,10 +66,10 @@ interface ConfettiSeed {
  */
 function generateConfettiSeeds(count: number): ConfettiSeed[] {
   return Array.from({ length: count }, () => ({
-    startXOffset: (Math.random() - 0.5) * 100,
-    startYOffset: (Math.random() - 0.5) * 100,
-    endXOffset: (Math.random() - 0.5) * 0.6,
-    endYOffset: 0.3 + Math.random() * 0.4,
+    startXRatio: Math.random(),
+    startYRatio: Math.random() * 0.15,
+    endXOffset: (Math.random() - 0.5) * 0.2,
+    endYOffset: 0.8 + Math.random() * 0.4,
     rotation: Math.random() * 360,
     durationOffset: Math.random() * 1000,
   }));
@@ -70,6 +80,9 @@ export const RecordCelebrationScreen: React.FC = () => {
   const route = useRoute<RouteProp<RecordStackParamList, 'RecordCelebration'>>();
   const { celebrationMode } = useReducedMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const [topAreaHeight, setTopAreaHeight] = useState(0);
+  const [sceneFrame, setSceneFrame] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [backgroundFrame, setBackgroundFrame] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const lightAnim = useRef(new Animated.Value(0)).current;
   const messageOpacity = useRef(new Animated.Value(0)).current;
   const confettiAnims = useRef(
@@ -97,6 +110,8 @@ export const RecordCelebrationScreen: React.FC = () => {
     () => getCelebrationCharacterLayout(screenWidth, screenHeight),
     [screenWidth, screenHeight]
   );
+  const characterScale = 0.7;
+  const characterYOffset = 40;
 
   // Get current age group for character asset
   const currentAgeGroup = useWorldSignals((state) => state.ageGroup);
@@ -105,8 +120,20 @@ export const RecordCelebrationScreen: React.FC = () => {
   const confettiSeeds = useMemo(() => generateConfettiSeeds(CONFETTI_COUNT), []);
 
   // Bookshelf position (center of light animation)
-  const bookshelfX = screenWidth * BOOKSHELF_X_RATIO;
-  const bookshelfY = screenHeight * 0.5;
+  const bookshelfX =
+    backgroundFrame.width > 0 && sceneFrame.width > 0
+      ? sceneFrame.x + backgroundFrame.x + backgroundFrame.width * 0.5
+      : sceneFrame.width > 0
+        ? sceneFrame.x + sceneFrame.width * 0.5
+        : screenWidth * BOOKSHELF_X_RATIO;
+  const bookshelfY =
+    backgroundFrame.height > 0 && sceneFrame.height > 0
+      ? sceneFrame.y + backgroundFrame.y + backgroundFrame.height * 0.5
+      : sceneFrame.height > 0
+        ? sceneFrame.y + sceneFrame.height * 0.5
+        : topAreaHeight > 0
+          ? topAreaHeight * 0.5
+          : screenHeight * 0.35;
 
   useEffect(() => {
     const lightSequence =
@@ -134,30 +161,33 @@ export const RecordCelebrationScreen: React.FC = () => {
     if (celebrationMode === 'full') {
       const confettiAnimations = confettiAnims.map((anim, index) => {
         const seed = confettiSeeds[index];
-        const startX = bookshelfX + seed.startXOffset;
-        const startY = bookshelfY + seed.startYOffset;
+        const startX = screenWidth * seed.startXRatio;
+        const startY = screenHeight * seed.startYRatio;
         const endX = startX + seed.endXOffset * screenWidth;
-        const endY = startY - screenHeight * seed.endYOffset;
+        const endY = startY + screenHeight * seed.endYOffset;
         const rotation = seed.rotation;
+        const travelDuration = 2600 + seed.durationOffset;
+        const fadeOutDelay = Math.round(travelDuration * 0.45);
+        const fadeOutDuration = Math.round(travelDuration * 0.35);
 
         return Animated.parallel([
           Animated.timing(anim.translateY, {
             toValue: endY - startY,
-            duration: 2000 + seed.durationOffset,
+            duration: travelDuration,
             delay: index * 50,
-            easing: easing.easeOut,
+            easing: Easing.in(Easing.quad),
             useNativeDriver: true,
           }),
           Animated.timing(anim.translateX, {
             toValue: endX - startX,
-            duration: 2000 + seed.durationOffset,
+            duration: travelDuration,
             delay: index * 50,
             easing: easing.easeOut,
             useNativeDriver: true,
           }),
           Animated.timing(anim.rotate, {
             toValue: rotation,
-            duration: 2000 + seed.durationOffset,
+            duration: travelDuration,
             delay: index * 50,
             easing: easing.easeOut,
             useNativeDriver: true,
@@ -165,14 +195,14 @@ export const RecordCelebrationScreen: React.FC = () => {
           Animated.sequence([
             Animated.timing(anim.opacity, {
               toValue: 1,
-              duration: 200,
+              duration: 180,
               delay: index * 50,
               useNativeDriver: true,
             }),
+            Animated.delay(fadeOutDelay),
             Animated.timing(anim.opacity, {
               toValue: 0,
-              duration: 500,
-              delay: 1500,
+              duration: fadeOutDuration,
               useNativeDriver: true,
             }),
           ]),
@@ -213,7 +243,9 @@ export const RecordCelebrationScreen: React.FC = () => {
           },
         },
       });
-      parentNavigation.goBack();
+      if (parentNavigation.canGoBack()) {
+        parentNavigation.goBack();
+      }
     }
   };
 
@@ -223,7 +255,9 @@ export const RecordCelebrationScreen: React.FC = () => {
       navigation.popToTop();
       if (parentNavigation) {
         parentNavigation.navigate('MainTabs', { screen: 'Home' });
-        parentNavigation.goBack();
+        if (parentNavigation.canGoBack()) {
+          parentNavigation.goBack();
+        }
       }
     }, 5000); // Extended timeout to allow user to see the button
 
@@ -242,43 +276,65 @@ export const RecordCelebrationScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Bookshelf background (standalone, not using WorldScene) */}
-      <Image
-        source={BACKGROUND_ASSETS.tools_shell}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        accessibilityLabel="本棚の背景"
-      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View
+          style={styles.topArea}
+          onLayout={(event) => {
+            const height = event.nativeEvent.layout.height;
+            if (height > 0 && height !== topAreaHeight) {
+              setTopAreaHeight(height);
+            }
+          }}
+        >
+          <View
+            style={styles.sceneFrame}
+            onLayout={(event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              if (width > 0 && height > 0) {
+                setSceneFrame({ x, y, width, height });
+              }
+            }}
+          >
+            {/* Bookshelf background (standalone, not using WorldScene) */}
+          <Image
+            source={BACKGROUND_ASSETS.tools_shell}
+            style={styles.backgroundImage}
+            contentFit="contain"
+            accessibilityLabel="本棚の背景"
+            onLayout={(event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              if (width > 0 && height > 0) {
+                setBackgroundFrame({ x, y, width, height });
+              }
+            }}
+          />
 
-      {/* Character overlay with responsive positioning */}
-      <Image
-        source={getCharacterAsset(currentAgeGroup)}
-        style={[
-          styles.character,
-          {
-            top: characterLayout.top,
-            left: characterLayout.left,
-            width: characterLayout.width,
-            height: characterLayout.height,
-          },
-        ]}
-        contentFit="contain"
-        accessibilityLabel="キャラクター"
-      />
+            {/* Character overlay (stacked on bookshelf) */}
+            <Image
+              source={getCharacterAsset(currentAgeGroup)}
+              style={[
+                styles.character,
+                {
+                  transform: [{ scale: characterScale }, { translateY: characterYOffset }],
+                },
+              ]}
+              contentFit="contain"
+              accessibilityLabel="キャラクター"
+            />
+          </View>
 
-      <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
-        {/* Confetti particles */}
-        {celebrationMode === 'full' &&
-          confettiAnims.map((anim, index) => {
-            const seed = confettiSeeds[index];
-            const startX = bookshelfX + seed.startXOffset;
-            const startY = bookshelfY + seed.startYOffset;
-            const rotate = anim.rotate.interpolate({
-              inputRange: [0, 360],
-              outputRange: ['0deg', '360deg'],
-            });
+          {/* Confetti particles */}
+          {celebrationMode === 'full' &&
+            confettiAnims.map((anim, index) => {
+              const seed = confettiSeeds[index];
+              const startX = screenWidth * seed.startXRatio;
+              const startY = screenHeight * seed.startYRatio;
+              const rotate = anim.rotate.interpolate({
+                inputRange: [0, 360],
+                outputRange: ['0deg', '360deg'],
+              });
 
-            return (
+              return (
               <Animated.View
                 key={index}
                 style={[
@@ -286,69 +342,75 @@ export const RecordCelebrationScreen: React.FC = () => {
                   {
                     left: startX,
                     top: startY,
+                    backgroundColor: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
                     opacity: anim.opacity,
                     transform: [
                       { translateX: anim.translateX },
                       { translateY: anim.translateY },
                       { rotate },
-                    ],
-                  },
-                ]}
-              />
-            );
-          })}
+                      ],
+                    },
+                  ]}
+                />
+              );
+            })}
 
-        {/* Light spread animation (centered on bookshelf) */}
-        {celebrationMode === 'full' && (
-          <Animated.View
-            style={[
-              styles.lightSpread,
-              {
-                left: bookshelfX - 210, // Half of width (420 / 2)
-                top: bookshelfY - 210, // Half of height (420 / 2)
-                opacity: lightOpacity,
-                transform: [{ scale: lightScale }],
-              },
-            ]}
-          />
-        )}
+          {/* Light spread animation (centered on bookshelf) */}
+          {celebrationMode === 'full' && (
+            <Animated.View
+              style={[
+                styles.lightSpread,
+                {
+                  left: bookshelfX - LIGHT_RADIUS,
+                  top: bookshelfY - LIGHT_RADIUS,
+                  opacity: lightOpacity,
+                  transform: [{ scale: lightScale }],
+                },
+              ]}
+            />
+          )}
+        </View>
 
-        <Animated.View style={[styles.messageContainer, { opacity: messageOpacity }]}>
-          {/* Menu icon */}
+        <View style={styles.bottomArea}>
+          <Animated.View style={[styles.messageContainer, { opacity: messageOpacity }]}>
+            {/* Menu icon */}
           {menuItem && (
             <View style={styles.iconContainer}>
-              <AppImage
-                source={menuItem.icon}
-                width={64}
-                height={64}
-                rounded="lg"
-                accessibilityLabel={menuItem.label}
-              />
+              <View style={styles.menuCard}>
+                <AppImage
+                  source={menuItem.icon}
+                  width={64}
+                  height={64}
+                  rounded="lg"
+                  accessibilityLabel={menuItem.label}
+                />
+              </View>
             </View>
           )}
 
-          {/* Message */}
-          <Text
-            variant="subheading"
-            style={styles.message}
-            accessibilityRole="text"
-            accessibilityLabel={message}
-          >
-            {message}
-          </Text>
+            {/* Message */}
+            <Text
+              variant="subheading"
+              style={styles.message}
+              accessibilityRole="text"
+              accessibilityLabel={message}
+            >
+              {message}
+            </Text>
 
-          {/* View Encyclopedia button */}
-          <View style={styles.buttonContainer}>
-            <Button
-              label="図鑑を見る"
-              variant="secondary"
-              size="md"
-              iconLeft="Books"
-              onPress={handleViewEncyclopedia}
-              accessibilityLabel="図鑑を見る"
-            />
-          </View>
-        </Animated.View>
+            {/* View Encyclopedia button */}
+            <View style={styles.buttonContainer}>
+              <Button
+                label="図鑑を見る"
+                variant="secondary"
+                size="md"
+                iconLeft="Books"
+                onPress={handleViewEncyclopedia}
+                accessibilityLabel="図鑑を見る"
+              />
+            </View>
+          </Animated.View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -359,15 +421,40 @@ RecordCelebrationScreen.displayName = 'RecordCelebrationScreen';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background.primary,
+    backgroundColor: '#E5D4C8',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  topArea: {
+    flex: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sceneFrame: {
+    width: '86%',
+    height: '86%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+  bottomArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
   },
   character: {
     position: 'absolute',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    zIndex: 2,
   },
   confetti: {
     position: 'absolute',
@@ -375,21 +462,29 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: theme.colors.accent.primary,
+    zIndex: 10,
   },
   lightSpread: {
     position: 'absolute',
-    width: 420,
-    height: 420,
-    borderRadius: 210,
-    backgroundColor: theme.colors.accent.subtle,
+    width: LIGHT_SIZE,
+    height: LIGHT_SIZE,
+    borderRadius: LIGHT_RADIUS,
+    backgroundColor: '#FFFFFF',
+    zIndex: 2,
   },
   messageContainer: {
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     alignItems: 'center',
     gap: theme.spacing.md,
   },
   iconContainer: {
     marginBottom: theme.spacing.sm,
+  },
+  menuCard: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface.elevated,
+    ...theme.shadow.sm,
   },
   message: {
     textAlign: 'center',
