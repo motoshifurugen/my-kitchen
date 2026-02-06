@@ -168,6 +168,8 @@ export const RecordScreen: React.FC = () => {
         return;
       }
 
+      // expo-image-picker v15+ accepts ['images'] array but @types still expects enum.
+      // Type assertion required until types are updated upstream.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'] as unknown as ImagePicker.MediaTypeOptions,
         allowsEditing: false,

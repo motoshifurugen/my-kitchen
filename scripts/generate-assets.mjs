@@ -144,7 +144,6 @@ function updateManifest(groupConfig, generatedAssets) {
         assetData['@2x'].path
       );
       const relativePath = rawPath.replace(/\\/g, '/').replace(/@2x\.webp$/, '.webp');
-      console.log(`  [DEBUG] Key: ${key}, Raw: ${rawPath}, Final: ${relativePath}`);
       return `  "${key}": require("${relativePath}"),`;
     })
     .join('\n');
@@ -152,9 +151,6 @@ function updateManifest(groupConfig, generatedAssets) {
   const manifestBlock = `export const ${groupConfig.manifestKey} = {\n${manifestEntries}\n} as const;`;
 
   const fullBlock = `${startMarker}\n${manifestBlock}\n${endMarker}`;
-
-  console.log('[DEBUG] Full block to write:');
-  console.log(fullBlock);
 
   // Check if markers exist
   const hasStartMarker = content.includes(startMarker);
