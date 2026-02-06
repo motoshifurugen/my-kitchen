@@ -50,3 +50,16 @@ export const MENU_CATALOG: MenuItem[] = Object.entries(MENU_ICONS).map(
     icon,
   })
 );
+
+// Pre-built lookup by label for O(1) access
+const iconByLabel = new Map<string, MenuItem['icon']>(
+  MENU_CATALOG.map((item) => [item.label, item.icon])
+);
+
+/**
+ * Look up menu icon source by dish title (Japanese label).
+ * Returns null if no matching menu item found.
+ */
+export function getMenuIconSource(title: string): MenuItem['icon'] | null {
+  return iconByLabel.get(title) ?? null;
+}

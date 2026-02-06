@@ -17,11 +17,11 @@ import { theme } from '../tokens';
 import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
 import { formatCookedAt, useArchiveCards, type DishCard } from '../features/archive';
 import { ENCYCLOPEDIA_CATALOG } from '../features/archive/data/encyclopediaCatalog';
-import { bookshelfRepo } from '../repositories';
+import { bookshelfRepo, favoritesRepo } from '../repositories';
 
 export const BookshelfLogScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ShelfStackParamList>>();
-  const { cards, isLoading } = useArchiveCards();
+  const { cards, isLoading, refetch } = useArchiveCards();
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [events, setEvents] = useState<Array<{ title: string; occurred_at: string }>>([]);
@@ -54,7 +54,22 @@ export const BookshelfLogScreen: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     setTimeout(() => setSelectedCard(null), 300);
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  const handleToggleFavorite = useCallback(
+    async (cardId: string, isFavorite: boolean) => {
+      try {
+        await favoritesRepo.setFavorite(cardId, isFavorite);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[favorite] toggle failed', error);
+        }
+      }
+      refetch();
+    },
+    [refetch]
+  );
 
   return (
     <AppShell
@@ -121,6 +136,7 @@ export const BookshelfLogScreen: React.FC = () => {
         visible={isModalVisible}
         card={selectedCard}
         onClose={handleCloseModal}
+        onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>
   );

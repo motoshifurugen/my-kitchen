@@ -2,13 +2,17 @@
  * RecipeDetailModal Organism
  *
  * S-03: Recipe card detail modal.
- * Displays dish photo, name, memo, tags, date, and cook count.
+ * Displays 2.5D menu icon, name, action row (recipe/favorite),
+ * and collapsed log view (latest + summary + expand).
+ *
+ * Design: "棚のカードを手に取った" — a card picked from the shelf.
+ * Photo is NOT the hero; the menu icon is the main visual.
  *
  * Animation: Scale (0.95→1) + Fade, 250ms
  * Close: X button (top-left) or scrim tap
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Modal,
@@ -21,13 +25,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton, Chip } from '../molecules';
-import { Text, AppImage, PressableBase } from '../atoms';
+import { Text, AppImage, Icon, PressableBase } from '../atoms';
 import { useIsReducedMotion } from '../../hooks/useReducedMotion';
 import { colors, radius, spacing, size, shadow } from '../../tokens';
 import { DishCard } from '../../features/archive/types';
 import { formatCookedAt } from '../../features/archive/utils';
 import { logsRepo } from '../../repositories';
 import type { CookLogRow } from '../../repositories';
+import { getMenuIconSource } from '../../data/menuCatalog';
+import { MENU_ICONS } from '../../assets/manifest';
+import { getLatestLog, getRecentDates, getSortedLogs, getSummaryText } from './recipeDetailHelpers';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,6 +42,13 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HORIZONTAL_MARGIN = 20;
 const MODAL_WIDTH = SCREEN_WIDTH - MODAL_HORIZONTAL_MARGIN * 2;
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT * 0.85;
+
+// Menu icon display size in modal (larger than grid for visibility)
+const MENU_ICON_SIZE = 80;
+
+// TODO: Replace with dedicated _fallback@2x.webp asset
+// See: app/assets/menu-icons/_fallback@2x.webp
+const FALLBACK_ICON = MENU_ICONS.menu_onigiri;
 
 // Animation config
 const ANIMATION_DURATION = 250;
@@ -46,22 +60,41 @@ export interface RecipeDetailModalProps {
   card: DishCard | null;
   /** Close handler */
   onClose: () => void;
+  /** Favorite toggle handler (optimistic UI) */
+  onToggleFavorite?: (cardId: string, isFavorite: boolean) => void;
 }
 
 export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   visible,
   card,
   onClose,
+  onToggleFavorite,
 }) => {
   const insets = useSafeAreaInsets();
   const reduceMotionEnabled = useIsReducedMotion();
   const [logs, setLogs] = useState<CookLogRow[]>([]);
   const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(null);
   const [interactionReady, setInteractionReady] = useState(false);
+  const [logsExpanded, setLogsExpanded] = useState(false);
+  const [localFavorite, setLocalFavorite] = useState(false);
 
   // Animation values
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.95)).current;
+
+  // Sync local favorite state with card prop
+  useEffect(() => {
+    if (card) {
+      setLocalFavorite(card.isFavorite ?? false);
+    }
+  }, [card]);
+
+  // Reset expanded state when modal opens
+  useEffect(() => {
+    if (visible && card) {
+      setLogsExpanded(false);
+    }
+  }, [visible, card]);
 
   // Run enter/exit animation
   useEffect(() => {
@@ -71,8 +104,6 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
         setInteractionReady(true);
       }, 200);
 
-      // Enter animation
-      // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
       const animations = [
         Animated.timing(opacity, {
           toValue: 1,
@@ -92,7 +123,6 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
           })
         );
       } else {
-        // Reduced Motion時はscaleを即座に1に設定
         scale.setValue(1);
       }
 
@@ -100,7 +130,6 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
       return () => clearTimeout(interactionTimer);
     } else {
-      // Reset for next open
       opacity.setValue(0);
       scale.setValue(reduceMotionEnabled ? 1 : 0.95);
       setInteractionReady(false);
@@ -110,13 +139,16 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   useEffect(() => {
     let isMounted = true;
     if (visible && card) {
-      logsRepo.listByRecipe(card.id)
+      logsRepo
+        .listByRecipe(card.id)
         .then((rows) => {
           if (!isMounted) return;
           setLogs(rows);
         })
         .catch((error) => {
-          console.error('[recipe] logs load failed', error);
+          if (__DEV__) {
+            console.error('[recipe] logs load failed', error);
+          }
         });
     }
     return () => {
@@ -124,15 +156,25 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
     };
   }, [visible, card]);
 
-  // Don't render if not visible or no card
+  // Derived data
+  const menuIcon = useMemo(() => {
+    if (!card) return FALLBACK_ICON;
+    return getMenuIconSource(card.title) ?? FALLBACK_ICON;
+  }, [card]);
+
+  const latestLog = useMemo(() => getLatestLog(logs), [logs]);
+  const summary = useMemo(() => getSummaryText(logs), [logs]);
+  const recentDates = useMemo(() => getRecentDates(logs, 3), [logs]);
+
+  // Sorted logs for expanded view
+  const sortedLogs = useMemo(() => getSortedLogs(logs), [logs]);
+
   if (!visible || !card) {
     return null;
   }
 
   const handleClose = () => {
     if (!interactionReady) return;
-    // Exit animation then close
-    // Reduced Motion時はscaleアニメーションを無効化し、fadeのみ
     const animations = [
       Animated.timing(opacity, {
         toValue: 0,
@@ -157,6 +199,63 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
       onClose();
     });
   };
+
+  const handleToggleFavorite = () => {
+    if (!card) return;
+    const nextValue = !localFavorite;
+    setLocalFavorite(nextValue);
+    onToggleFavorite?.(card.id, nextValue);
+  };
+
+  // TODO: Wire to recipe screen navigation or external URL
+  const handleRecipePress = () => {
+    // no-op placeholder
+  };
+
+  // --- Log row rendering ---
+
+  const renderLogRow = (log: CookLogRow) => (
+    <View key={log.id} style={styles.logRow}>
+      <View style={styles.logContentRow}>
+        {log.photo_uri ? (
+          <PressableBase
+            style={styles.logPhotoButton}
+            onPress={() => setPhotoPreviewUri(log.photo_uri ?? null)}
+            accessibilityLabel="写真を拡大"
+            accessibilityRole="button"
+          >
+            <AppImage
+              source={{ uri: log.photo_uri }}
+              width={56}
+              height={56}
+              rounded="md"
+              contentFit="cover"
+              accessibilityLabel={`${card.title}の写真`}
+            />
+          </PressableBase>
+        ) : (
+          <View style={styles.logPhotoPlaceholder}>
+            <Icon name="Image" size={20} color={colors.icon.disabled} />
+          </View>
+        )}
+        <View style={styles.logTextColumn}>
+          <Text variant="caption" color={colors.text.tertiary}>
+            {formatCookedAt(log.cooked_at)}
+          </Text>
+          {log.memo ? (
+            <Text
+              variant="body"
+              color={colors.text.secondary}
+              numberOfLines={3}
+              style={styles.logMemo}
+            >
+              {log.memo}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <Modal
@@ -203,40 +302,63 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Photo or Placeholder */}
-            <View style={styles.photoContainer}>
-              {card.photoUri ? (
-                <AppImage
-                  source={{ uri: card.photoUri }}
-                  style={styles.photo}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Text
-                    variant="body"
-                    color={colors.text.secondary}
-                    style={styles.placeholderText}
-                  >
-                    写真はまだありません。次に作るときに、追加できます。
-                  </Text>
-                </View>
-              )}
+            {/* ===== Card Face: Menu Icon + Title ===== */}
+            <View style={styles.cardFace}>
+              <AppImage
+                source={menuIcon}
+                width={MENU_ICON_SIZE}
+                height={MENU_ICON_SIZE}
+                rounded="md"
+                contentFit="contain"
+                accessibilityLabel={`${card.title}のアイコン`}
+              />
+              <Text
+                variant="heading"
+                numberOfLines={2}
+                style={styles.cardTitle}
+              >
+                {card.title}
+              </Text>
             </View>
 
-            {/* Title */}
-            <Text variant="heading" style={styles.title}>
-              {card.title}
-            </Text>
+            {/* ===== Action Row: Recipe / Favorite ===== */}
+            <View style={styles.actionRow}>
+              <PressableBase
+                style={styles.actionButton}
+                onPress={handleRecipePress}
+                accessibilityLabel="レシピを見る"
+                accessibilityRole="button"
+              >
+                <Icon name="Books" size={18} color={colors.text.secondary} />
+                <Text variant="caption" color={colors.text.secondary}>
+                  レシピ
+                </Text>
+              </PressableBase>
 
-            {/* Memo */}
-            {card.memo && (
-              <Text variant="body" color={colors.text.secondary} style={styles.memo}>
-                {card.memo}
-              </Text>
-            )}
+              <PressableBase
+                style={styles.actionButton}
+                onPress={handleToggleFavorite}
+                accessibilityLabel={
+                  localFavorite ? 'お気に入りを解除' : 'お気に入りに追加'
+                }
+                accessibilityRole="button"
+              >
+                <Icon
+                  name="Heart"
+                  size={18}
+                  color={localFavorite ? colors.accent.primary : colors.text.secondary}
+                  weight={localFavorite ? 'fill' : 'regular'}
+                />
+                <Text
+                  variant="caption"
+                  color={localFavorite ? colors.accent.primary : colors.text.secondary}
+                >
+                  お気に入り
+                </Text>
+              </PressableBase>
+            </View>
 
-            {/* Tags */}
+            {/* ===== Tags ===== */}
             {card.tags && card.tags.length > 0 && (
               <View style={styles.tagsContainer}>
                 {card.tags.map((tag, index) => (
@@ -245,83 +367,80 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               </View>
             )}
 
-            {/* Metadata: Date & Count */}
-            <View style={styles.metaContainer}>
-              {card.cookCount > 0 ? (
-                <>
-                  <Text variant="caption" color={colors.text.tertiary}>
-                    {formatCookedAt(card.cookedAt)}
-                  </Text>
-                  <Text variant="caption" color={colors.text.tertiary}>
-                    {card.cookCount}回作った
-                  </Text>
-                </>
-              ) : (
-                <Text variant="caption" color={colors.text.tertiary}>
-                  まだ記録はありません
+            {/* ===== Log Section ===== */}
+            {logs.length > 0 && (
+              <View style={styles.logsSection}>
+                <Text
+                  variant="caption"
+                  color={colors.text.secondary}
+                  style={styles.logsSectionTitle}
+                >
+                  記録
                 </Text>
-              )}
-            </View>
 
-            {/* Logs */}
-            <View style={styles.logsSection}>
-              <Text variant="caption" color={colors.text.secondary} style={styles.logsTitle}>
-                記録
-              </Text>
-              {logs.length === 0 ? (
+                {/* Latest log (always visible) */}
+                {latestLog && renderLogRow(latestLog)}
+
+                {/* Summary bar */}
+                <View style={styles.summaryBar}>
+                  <Text variant="caption" color={colors.text.tertiary}>
+                    合計 {summary.totalCount} 回
+                  </Text>
+                  <Text variant="caption" color={colors.text.tertiary}>
+                    最後 {summary.latestDate}
+                  </Text>
+                </View>
+
+                {/* Recent date chips */}
+                {recentDates.length > 1 && (
+                  <View style={styles.recentChips}>
+                    {recentDates.slice(1).map((date, i) => (
+                      <View key={i} style={styles.dateChip}>
+                        <Text variant="caption" color={colors.text.tertiary}>
+                          {date}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Expand / Collapse toggle */}
+                {logs.length > 1 && (
+                  <>
+                    <PressableBase
+                      style={styles.expandButton}
+                      onPress={() => setLogsExpanded((prev) => !prev)}
+                      accessibilityLabel={
+                        logsExpanded ? '記録を閉じる' : 'すべての記録を見る'
+                      }
+                      accessibilityRole="button"
+                    >
+                      <Text variant="caption" color={colors.text.link}>
+                        {logsExpanded ? '閉じる' : 'すべて見る'}
+                      </Text>
+                    </PressableBase>
+
+                    {/* Expanded log list */}
+                    {logsExpanded &&
+                      sortedLogs.slice(1).map((log) => renderLogRow(log))}
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* Empty log state (quiet) */}
+            {logs.length === 0 && card.cookCount === 0 && (
+              <View style={styles.emptyLogHint}>
                 <Text variant="caption" color={colors.text.tertiary}>
                   ここに記録が並びます。
                 </Text>
-              ) : (
-                logs.map((log) => (
-                  <View key={log.id} style={styles.logRow}>
-                    <Text variant="caption" color={colors.text.tertiary}>
-                      {formatCookedAt(log.cooked_at)}
-                    </Text>
-                    <View style={styles.logContentRow}>
-                      {log.photo_uri ? (
-                        <PressableBase
-                          style={styles.logPhotoButton}
-                          onPress={() => setPhotoPreviewUri(log.photo_uri ?? null)}
-                          accessibilityLabel="写真を拡大"
-                          accessibilityRole="button"
-                        >
-                          <AppImage
-                            source={{ uri: log.photo_uri }}
-                            width={56}
-                            height={56}
-                            rounded="md"
-                            contentFit="cover"
-                            accessibilityLabel={`${card.title}の写真`}
-                          />
-                        </PressableBase>
-                      ) : (
-                        <View style={styles.logPhotoPlaceholder}>
-                          <Text variant="caption" color={colors.text.tertiary}>
-                            写真なし
-                          </Text>
-                        </View>
-                      )}
-                      <View style={styles.logTextColumn}>
-                        {log.memo ? (
-                          <Text variant="body" color={colors.text.secondary} style={styles.logMemo}>
-                            {log.memo}
-                          </Text>
-                        ) : (
-                          <Text variant="caption" color={colors.text.tertiary}>
-                            メモはありません。
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
+              </View>
+            )}
           </ScrollView>
         </Animated.View>
       </View>
 
+      {/* Photo Preview Modal */}
       <Modal
         visible={Boolean(photoPreviewUri)}
         transparent
@@ -358,8 +477,6 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFillObject,
-    // MVP: scrim only, no blur
-    // TODO: UX-LATER: world blur backdrop
     backgroundColor: colors.overlay.scrim,
     zIndex: 1,
     elevation: 1,
@@ -385,55 +502,53 @@ const styles = StyleSheet.create({
     maxHeight: MODAL_MAX_HEIGHT,
   },
   scrollContent: {
-    paddingTop: spacing.sm + size.tap.recommended, // Space for close button
+    paddingTop: spacing.sm + size.tap.recommended,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.lg,
   },
-  photoContainer: {
-    width: '100%',
-    aspectRatio: 4 / 3,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  photoPlaceholder: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
+
+  // Card face
+  cardFace: {
     alignItems: 'center',
-    padding: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
-  placeholderText: {
+  cardTitle: {
     textAlign: 'center',
   },
-  title: {
+
+  // Action row
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xl,
+    paddingVertical: spacing.sm,
     marginBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
-  memo: {
-    marginBottom: spacing.md,
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
+
+  // Tags
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  metaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-  },
+
+  // Logs section
   logsSection: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     gap: spacing.sm,
   },
-  logsTitle: {
+  logsSectionTitle: {
     marginBottom: spacing.xs,
   },
   logRow: {
@@ -458,10 +573,48 @@ const styles = StyleSheet.create({
   },
   logTextColumn: {
     flex: 1,
+    gap: 2,
   },
   logMemo: {
     lineHeight: 20,
   },
+
+  // Summary bar
+  summaryBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+
+  // Recent date chips
+  recentChips: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    flexWrap: 'wrap',
+  },
+  dateChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    backgroundColor: colors.background.secondary,
+  },
+
+  // Expand button
+  expandButton: {
+    alignSelf: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+
+  // Empty log hint (quiet)
+  emptyLogHint: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+  },
+
+  // Photo preview
   previewBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay.scrim,

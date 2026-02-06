@@ -25,6 +25,7 @@ import {
 import { useGridColumns, useResponsiveLayout } from '../hooks';
 import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
 import { ENCYCLOPEDIA_CATALOG, type EncyclopediaEntry } from '../features/archive/data/encyclopediaCatalog';
+import { favoritesRepo } from '../repositories';
 
 const SKELETON_COUNT = 6;
 
@@ -39,7 +40,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const { cards, isLoading, showSkeleton } = useArchiveCards();
+  const { cards, isLoading, showSkeleton, refetch } = useArchiveCards();
   const { mode, category, title, openCardId } = route.params;
 
   const catalogByTitle = useMemo(() => {
@@ -155,7 +156,22 @@ export const EncyclopediaGridScreen: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     setTimeout(() => setSelectedCard(null), 300);
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  const handleToggleFavorite = useCallback(
+    async (cardId: string, isFavorite: boolean) => {
+      try {
+        await favoritesRepo.setFavorite(cardId, isFavorite);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[favorite] toggle failed', error);
+        }
+      }
+      refetch();
+    },
+    [refetch]
+  );
 
   // Generate styles with responsive values
   const styles = useMemo(
@@ -298,6 +314,7 @@ export const EncyclopediaGridScreen: React.FC = () => {
         visible={isModalVisible}
         card={selectedCard}
         onClose={handleCloseModal}
+        onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>
   );

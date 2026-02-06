@@ -17,6 +17,7 @@ import type { ShelfStackParamList } from '../navigation/ShelfNavigator';
 import { useArchiveCards, sortCardsByDate, type DishCard } from '../features/archive';
 import type { DishCategory } from '../features/archive';
 import { ENCYCLOPEDIA_CATALOG } from '../features/archive/data/encyclopediaCatalog';
+import { favoritesRepo } from '../repositories';
 
 const ENCYCLOPEDIA_CATEGORIES = [
   { id: 'soup', label: '汁もの', hint: '湯気のある時間' },
@@ -40,7 +41,7 @@ const encyclopediaCategories: EncyclopediaCategory[] = ENCYCLOPEDIA_CATEGORIES.m
 
 export const BookshelfScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ShelfStackParamList>>();
-  const { cards, isLoading } = useArchiveCards();
+  const { cards, isLoading, refetch } = useArchiveCards();
   const { pagePaddingX, contentMaxWidth, shouldCenterContent } = useResponsiveLayout();
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -116,7 +117,22 @@ export const BookshelfScreen: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     setTimeout(() => setSelectedCard(null), 300);
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  const handleToggleFavorite = useCallback(
+    async (cardId: string, isFavorite: boolean) => {
+      try {
+        await favoritesRepo.setFavorite(cardId, isFavorite);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[favorite] toggle failed', error);
+        }
+      }
+      refetch();
+    },
+    [refetch]
+  );
 
   return (
     <AppShell
@@ -274,6 +290,7 @@ export const BookshelfScreen: React.FC = () => {
         visible={isModalVisible}
         card={selectedCard}
         onClose={handleCloseModal}
+        onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>
   );

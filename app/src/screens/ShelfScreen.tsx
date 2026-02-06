@@ -20,6 +20,7 @@ import {
   useFilteredCards,
 } from '../features/archive';
 import { useGridColumns } from '../hooks';
+import { favoritesRepo } from '../repositories';
 
 type TabType = 'timeline' | 'category';
 
@@ -45,7 +46,7 @@ export const ShelfScreen: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<DishCard | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const { cards, isLoading, showSkeleton } = useArchiveCards();
+  const { cards, isLoading, showSkeleton, refetch } = useArchiveCards();
   const filteredCards = useFilteredCards(cards, {
     category: activeTab === 'category' ? selectedCategory : null,
     sortOrder: 'desc',
@@ -58,9 +59,23 @@ export const ShelfScreen: React.FC = () => {
 
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
-    // Clear selected card after animation completes
     setTimeout(() => setSelectedCard(null), 300);
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  const handleToggleFavorite = useCallback(
+    async (cardId: string, isFavorite: boolean) => {
+      try {
+        await favoritesRepo.setFavorite(cardId, isFavorite);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[favorite] toggle failed', error);
+        }
+      }
+      refetch();
+    },
+    [refetch]
+  );
 
   const renderCard = useCallback(
     ({ item }: { item: DishCard }) => (
@@ -220,6 +235,7 @@ export const ShelfScreen: React.FC = () => {
         visible={isModalVisible}
         card={selectedCard}
         onClose={handleCloseModal}
+        onToggleFavorite={handleToggleFavorite}
       />
     </AppShell>
   );
